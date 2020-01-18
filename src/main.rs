@@ -2,7 +2,8 @@ use std::env;
 use std::fs;
 
 use serde::{Serialize, Deserialize};
-use std::collections::BTreeMap;
+//use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 // https://serde.rs/derive.html
 // https://github.com/dtolnay/serde-yaml
@@ -16,7 +17,7 @@ struct Details {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 enum Snippet {
-    Hash(BTreeMap<String, Details>),
+    Commands(HashMap<String, Details>),
 }
 
 fn main() {
@@ -34,10 +35,18 @@ fn main() {
   let snippets: Snippet = serde_yaml::from_str(&contents).unwrap();
   println!("{:?}", snippets);
 
-  // let snippet_to_execute = snippets.get(&team_name);
-  
+  let available_snippets: HashMap<String, Details>;
+  match snippets {
+    Snippet::Commands(value) => {
+      println!("value: {:?}", value);
+      available_snippets = value;
+    }
+  }
 
-  // println!("With text:\n{}", contents);
+  println!("Snippet for '{}': {:?}", key , available_snippets.get(key));
+  let details_for_command: &Details = available_snippets.get(key).unwrap();
+  println!("  Command: {}", details_for_command.command);
+  println!("  Description: {}", details_for_command.description);
 
 }
 
