@@ -1,9 +1,14 @@
+// https://doc.rust-lang.org/rust-by-example/custom_types/enum/testcase_linked_list.html
+// https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html
+use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::process::Command;
+use std::str;
 
+use regex::Regex;
 use serde::{Serialize, Deserialize};
-//use std::collections::BTreeMap;
-use std::collections::HashMap;
+
 
 // https://serde.rs/derive.html
 // https://github.com/dtolnay/serde-yaml
@@ -33,12 +38,12 @@ fn main() {
   let contents = fs::read_to_string(file_to_read)
     .expect("Something went wrong reading the file");
   let snippets: Snippet = serde_yaml::from_str(&contents).unwrap();
-  println!("{:?}", snippets);
+  // println!("{:?}", snippets);
 
   let available_snippets: HashMap<String, Details>;
   match snippets {
     Snippet::Commands(value) => {
-      println!("value: {:?}", value);
+      // println!("value: {:?}", value);
       available_snippets = value;
     }
   }
@@ -48,6 +53,48 @@ fn main() {
   println!("  Command: {}", details_for_command.command);
   println!("  Description: {}", details_for_command.description);
 
+  let dcopy = details_for_command.clone();
+  let out = execute(dcopy);
+ // println!("  Out: {}", str::from_utf8(&out).unwrap());
+  println!("  Out:\n\n{}", out);
+}
+
+fn execute(d: &Details) -> String {
+  let a= d.command.clone();
+  let b= get_command_without_parameters(a);
+
+  println!("  THE a: {}", b);
+  let output = Command::new(b)
+  .arg("-l")
+  //.arg("echo hello")
+  .output()
+  .expect("failed to execute process");
+  let ret = str::from_utf8(&output.stdout).unwrap();
+  return String::from(ret);
+}
+
+fn get_command_without_parameters (command: String) -> String{
+  // let re = Regex::new(r"(\d{4})-(\d{2})-(\d{2})").unwrap();
+  let re = Regex::new(r#"^"(.*?)".*"#).unwrap();
+  //re.is_match(&command);
+  // println!("  MAtch1:{}", re.is_match(&command));
+  let mut ret: String = String::from("");
+  for cap in re.captures_iter(&command) {
+    //println!("Month: {}", &cap[1]);
+    ret =  String::from(&cap[1]);
+  }
+
+  if ret.is_empty() {
+    let re = Regex::new(r"^(.*?)\s").unwrap();
+    // println!("  MAtch2:{}", re.is_match(&command));
+    for cap in re.captures_iter(&command) {
+      //println!("Month2: {}", &cap[1]);
+      ret =  String::from(&cap[1]);
+    }
+  
+  }
+
+  return ret;
 }
 
 fn get_snipet_file_path() -> String {

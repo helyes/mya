@@ -1,7 +1,7 @@
 ls:ll:
   description: List long
-  command: ls -ll
+  command: ls blah blah2
 
 ls:la:
   description: List all
-  command: ls -lha
+  command: '"ls" -lha'
