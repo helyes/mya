@@ -1,0 +1,5 @@
+ls:ll
+  command: ls -l
+
+ls:la
+  command: ls -la
