@@ -1,5 +1,7 @@
-ls:ll
-  command: ls -l
+ls:ll:
+  description: List long
+  command: ls -ll
 
-ls:la
-  command: ls -la
+ls:la:
+  description: List all
+  command: ls -lha
