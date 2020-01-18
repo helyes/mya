@@ -5,3 +5,8 @@ ls:ll:
 ls:la:
   description: List all
   command: '"ls" -lha'
+
+pwd:
+  description: PWD
+  command: pwd
+  

@@ -60,41 +60,38 @@ fn main() {
 }
 
 fn execute(d: &Details) -> String {
-  let a= d.command.clone();
-  let b= get_command_without_parameters(a);
+  let command_with_params= d.command.clone();
+  let command_executable= get_command_without_parameters(command_with_params);
 
-  println!("  THE a: {}", b);
-  let output = Command::new(b)
+  println!("  THE a: {}", command_executable);
+  let output = Command::new(command_executable)
   .arg("-l")
-  //.arg("echo hello")
+  .arg("-h")
   .output()
   .expect("failed to execute process");
   let ret = str::from_utf8(&output.stdout).unwrap();
   return String::from(ret);
 }
 
-fn get_command_without_parameters (command: String) -> String{
-  // let re = Regex::new(r"(\d{4})-(\d{2})-(\d{2})").unwrap();
-  let re = Regex::new(r#"^"(.*?)".*"#).unwrap();
-  //re.is_match(&command);
-  // println!("  MAtch1:{}", re.is_match(&command));
-  let mut ret: String = String::from("");
-  for cap in re.captures_iter(&command) {
-    //println!("Month: {}", &cap[1]);
-    ret =  String::from(&cap[1]);
+fn get_command_without_parameters (command: String) -> String {
+
+  if !command.trim().contains(" ") {
+    return command;
   }
 
+  let re = Regex::new(r#"^"(.*?)".*"#).unwrap();
+  let mut captures = re.captures(&command);  
+  let mut ret;
+  match captures {
+    None => ret = "",
+    _ => ret = captures.unwrap().get(1).map_or("", |m| m.as_str()),
+  }
   if ret.is_empty() {
     let re = Regex::new(r"^(.*?)\s").unwrap();
-    // println!("  MAtch2:{}", re.is_match(&command));
-    for cap in re.captures_iter(&command) {
-      //println!("Month2: {}", &cap[1]);
-      ret =  String::from(&cap[1]);
-    }
-  
+    captures = re.captures(&command);
+    ret = captures.unwrap().get(1).map_or("", |m| m.as_str());
   }
-
-  return ret;
+  return String::from(ret);
 }
 
 fn get_snipet_file_path() -> String {
@@ -108,18 +105,3 @@ fn parse_config(args: &[String]) -> (&str, &str) {
 
   (action, key)
 }
-
-  // let content_hash = r#"
-  // {
-  //       "ONE_ENV": 
-  //         {command : "fake" }
-  // }
-  // "#;
-  // let snippet_data: Snippet = serde_yaml::from_str(content_hash).unwrap();
-  // println!("{:?}", snippet_data);
-  
-
-  // match serde_yaml::to_string(&snippet_data) {
-  //     Ok(s1) => println!("TOSTRING{:?}", s1), 
-  //     Err(_) => { println!("Error") },
-  // };
