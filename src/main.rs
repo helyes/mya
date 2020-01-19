@@ -21,6 +21,7 @@ use serde::{Serialize, Deserialize};
 struct Details {
     command: String,
     description: String,
+    directory: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -42,12 +43,6 @@ enum ActionListMode {
   Short, // this is for bash code completition
   Verbose
 }
-
-// #[derive(Debug)]
-// struct Executable {
-//   action: Action,
-//   key: String,
-// }
 
 
 fn parse_config(args: &[String]) -> Action {
@@ -140,13 +135,12 @@ fn list(mode: ActionListMode) {
 
 
 fn run(key: &str) {
-  debug!("RUNNING {}", &key);
+  debug!("Running {}", &key);
 
   let snippets: Snippet = read_snippets();
   let available_snippets: BTreeMap<String, Details>;
   match snippets {
     Snippet::Commands(value) => {
-      // println!("value: {:?}", value);
       available_snippets = value;
     }
   }
@@ -164,6 +158,10 @@ fn run(key: &str) {
 
   debug!("  Command: {}", details_for_command.command);
   debug!("  Description: {}", details_for_command.description);
+  match &details_for_command.directory {
+    Some(dir) => debug!("  Directory: {}", dir),
+    None      => debug!("  No directory configured"),
+  }
 
   let dcopy = details_for_command.clone();
   let output = execute(dcopy);
@@ -220,10 +218,16 @@ fn execute(d: &Details) -> std::process::Output {
   
   // add arguments
   for argument in arguments {
-    debug!("Adding argument:: {}", argument);
+    debug!("  Adding argument:: {}", argument);
     command.arg(argument);
+  };
+  let a = String::from("No dir!");
+  let directory = d.directory.as_ref().unwrap_or(&a);
+  let expanded_dir = shellexpand::full(&directory).unwrap();
+  if directory != &a {
+    debug!("  Adding dir: {:?}", expanded_dir);
+    command.current_dir(expanded_dir.as_ref());
   }
-  
   let output = command.output().expect("failed to execute process");
   return output;
 }
@@ -241,7 +245,6 @@ fn get_arguments (command_with_params: &String) -> Vec<String> {
     }
     i = i+1;
   }
-  
   return vec;
 }
 

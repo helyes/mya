@@ -2,14 +2,31 @@ ls:ll:
   description: List all
   command: ls -la
 
+ls:pwd:
+  description: List all and pwd. This is a multiline config
+  command: |
+    ls -la
+    pwd
+
 ls:lh:
-  description: List all human
+  description: List all files in ~/Movies directory
   command: '"ls" -lha'
+  directory: "~/Movies"
+
+ls:nvm:
+  description: List all in ${NVM_BIN} 
+  command: '"ls" -lha'
+  directory: "${NVM_BIN}"
 
 pwd:
-  description: PWD
+  description: PWD - no parameters
   command: pwd
 
 pwd:fail:
-  description: PWD
+  description: PWD that will fail bc of invalid parameters
   command: pwd -la
+
+rails:start:
+  description: Starts shiftcare's rails server
+  directory: "${HOME}/work/sc/shiftcare"
+  command: bundle exec rails s -p 3000
