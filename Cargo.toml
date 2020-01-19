@@ -11,3 +11,5 @@ colored = "1.9.2"
 serde = { version = "1.0.104", features = ["derive"] }
 serde_yaml = "0.8"
 regex = "1"
+log = "0.4.6"
+env_logger = "0.6.0"

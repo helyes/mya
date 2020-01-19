@@ -11,6 +11,8 @@ use std::str;
 use regex::Regex;
 use serde::{Serialize, Deserialize};
 
+#[macro_use] extern crate log;
+
 
 // https://serde.rs/derive.html
 // https://github.com/dtolnay/serde-yaml
@@ -49,31 +51,31 @@ enum ActionListMode {
 
 
 fn parse_config(args: &[String]) -> Action {
-  println!("Parsing args {:?}", args);
+  debug!("Parsing args {:?}", args);
   let mut ret: Action = Action::Unknown;
   match args {
     [only_one] => { 
-      println!("help for {}", only_one);
+      debug!("help for {}", only_one);
       ret = Action::Help;
     },
     [_first, action] => {
       match action.as_str() {
         "help" => ret = Action::Help,
         "list" => ret = Action::List(ActionListMode::Verbose),
-        _ => println!("Wrong parameter")
+        _ => println!("{}: {}", "Wrong parameter".red(), action.as_str().red())
       }
 
     },
     [_first, action, param] => { 
-      println!("Params: {} and {}",action, param);
+      debug!("Params: {} and {}",action, param);
       match action.as_str() {
         "run" => ret = Action::Run(String::from(param)),
         "list" => ret = Action::List(ActionListMode::Short), // whatever comes after list will result in short list
-        _ => println!("NOT a Run or List action")
+        _ => error!("NOT a Run or List action")
       }
       // println!("!!!!!!!!!Acrion enum: {:?}", &ret);
     },
-    _ => println!("Too many parameters: {}", args.len()),
+    _ => println!("{} {}", "Too many parameters:".red(), args.len().to_string().red()),
   }
 
   return ret;
@@ -81,7 +83,7 @@ fn parse_config(args: &[String]) -> Action {
 
 fn read_snippets() -> Snippet {
   let file_to_read = get_snipet_file_path();
-  println!("Reading file: {}", file_to_read);
+  debug!("Reading file: {}", file_to_read);
 
   let contents = fs::read_to_string(file_to_read)
     .expect("Something went wrong reading the file");
@@ -101,9 +103,9 @@ fn left_pad(s: &str, pad: usize, padchar: char) -> String
 }
 
 fn list(mode: ActionListMode) {
-  println!("LIST");
+  debug!("Listing snippets");
   let snippets: Snippet = read_snippets();
-  println!("Snippets: {:?}", snippets);
+  debug!("Snippets: {:?}", snippets);
   let available_snippets: BTreeMap<String, Details>;
   match snippets {
     Snippet::Commands(value) => {
@@ -138,7 +140,7 @@ fn list(mode: ActionListMode) {
 
 
 fn run(key: &str) {
-  println!("RUNNING {}", &key);
+  debug!("RUNNING {}", &key);
 
   let snippets: Snippet = read_snippets();
   let available_snippets: BTreeMap<String, Details>;
@@ -150,49 +152,48 @@ fn run(key: &str) {
   }
 
 
-  println!("Snippet for '{}': {:?}", key , available_snippets.get(key));
+  debug!("Snippet for '{}': {:?}", key , available_snippets.get(key));
   let details_for_command: &Details;
   match available_snippets.get(key) {
     None => {
-      println!("Snippet does not exist");
+      error!("Snippet does not exist");
       process::exit(1);
     },
     _ => details_for_command = available_snippets.get(key).unwrap()
   }
 
-  println!("  Command: {}", details_for_command.command);
-  println!("  Description: {}", details_for_command.description);
+  debug!("  Command: {}", details_for_command.command);
+  debug!("  Description: {}", details_for_command.description);
 
   let dcopy = details_for_command.clone();
   let output = execute(dcopy);
 
   match output.status.code() {
       Some(code) => {
-        println!("  Output status:{}", output.status.code().unwrap());
+        debug!("  Output status:{}", output.status.code().unwrap());
         if !&output.stdout.is_empty() {
-          println!("  Std Out:\n{}", str::from_utf8(&output.stdout).unwrap());
+          println!("\n{}", str::from_utf8(&output.stdout).unwrap());
         }
         if !&output.stderr.is_empty() {
-          println!("  Std Err:\n{}", str::from_utf8(&output.stderr).unwrap());
+          println!("\n{}", str::from_utf8(&output.stderr).unwrap().red());
         }
         process::exit(code);
       },
       None => {
-        println!("  Process terminated by signal. Unknow exit code.");
+        println!("{}", "Process terminated by signal. Unknow exit code".red());
         process::exit(255)
       }
     }
 }
 
 fn main() {
-
+  env_logger::init();
   let args: Vec<String> = env::args().collect();
   let a = parse_config(&args);
-  println!("AAAAA:{:?}", a);
 
   match a {
     Action::Help =>  {
-      println!("Printing help");
+      debug!("Printing help");
       process::exit(0);
     },
     Action::List(l) =>  {
@@ -202,7 +203,8 @@ fn main() {
       run(&key);
     }
     _ => {
-      println!("Action not implemented {:?}", a);
+      println!("Action not implemented: {:?}", a);
+      process::exit(3);
     }
   };
 
@@ -211,14 +213,14 @@ fn main() {
 fn execute(d: &Details) -> std::process::Output {
   let command_executable= get_command_without_parameters(&d.command);
 
-  println!("  Executable: {}", command_executable);
+  debug!("  Executable: {}", command_executable);
   let arguments = get_arguments(&d.command);
-  println!("  Arguments: {:?}", arguments);
+  debug!("  Arguments: {:?}", arguments);
   let mut command = Command::new(command_executable);
   
   // add arguments
   for argument in arguments {
-    println!("ARG: {}", argument);
+    debug!("Adding argument:: {}", argument);
     command.arg(argument);
   }
   
@@ -230,11 +232,11 @@ fn get_arguments (command_with_params: &String) -> Vec<String> {
   // ideal regex, not supported: "(.+?)"|([-\w]+(?=\s|$))
   let re = Regex::new(r#"("[^"]+")|\S+"#).unwrap();
   let mut vec = Vec::new();
-  println!("Getting arguments...");
+  debug!("Getting arguments...");
   let mut i: i16 = 0;
   for cap in re.captures_iter(command_with_params) {
     if i!= 0 {
-      println!("Found param: {}", &cap[0]);
+      debug!("Found param: {}", &cap[0]);
       vec.push(String::from(&cap[0]));
     }
     i = i+1;
@@ -245,7 +247,7 @@ fn get_arguments (command_with_params: &String) -> Vec<String> {
 
 
 fn get_command_without_parameters (command: &String) -> String {
-  println!("Getting command without parameters...");
+  debug!("Getting command without parameters...");
   if !command.trim().contains(" ") {
     return String::from(command);
   }
