@@ -86,11 +86,10 @@ fn main() {
 }
 
 fn execute(d: &Details) -> std::process::Output {
-  let command_with_params= d.command.clone();
-  let command_executable= get_command_without_parameters(&command_with_params);
+  let command_executable= get_command_without_parameters(&d.command);
 
   println!("  Executable: {}", command_executable);
-  let arguments = get_arguments(&command_with_params);
+  let arguments = get_arguments(&d.command);
   println!("  Arguments: {:?}", arguments);
   let mut command = Command::new(command_executable);
   
@@ -109,7 +108,7 @@ fn get_arguments (command_with_params: &String) -> Vec<String> {
   let re = Regex::new(r#"("[^"]+")|\S+"#).unwrap();
   let mut vec = Vec::new();
   println!("Getting arguments...");
-  let mut i: i32 = 0;
+  let mut i: i16 = 0;
   for cap in re.captures_iter(command_with_params) {
     if i!= 0 {
       println!("Found param: {}", &cap[0]);
@@ -118,11 +117,8 @@ fn get_arguments (command_with_params: &String) -> Vec<String> {
     i = i+1;
   }
   
-  // vec.push(String::from("-l"));
-  // vec.push(String::from("-h"));
   return vec;
 }
-
 
 
 fn get_command_without_parameters (command: &String) -> String {
@@ -146,28 +142,6 @@ fn get_command_without_parameters (command: &String) -> String {
   return String::from(ret);
 }
 // "([^"]+)"|\s*([^"\s]+)
-
-
-fn get_command_without_parameters_old (command: String) -> String {
-
-  if !command.trim().contains(" ") {
-    return command;
-  }
-
-  let re = Regex::new(r#"^"(.*?)".*"#).unwrap();
-  let mut captures = re.captures(&command);  
-  let mut ret;
-  match captures {
-    None => ret = "",
-    _ => ret = captures.unwrap().get(1).map_or("", |m| m.as_str()),
-  }
-  if ret.is_empty() {
-    let re = Regex::new(r"^(.*?)\s").unwrap();
-    captures = re.captures(&command);
-    ret = captures.unwrap().get(1).map_or("", |m| m.as_str());
-  }
-  return String::from(ret);
-}
 
 fn get_snipet_file_path() -> String {
   let file_path = String::from("snippets/shell.yaml"); // some_string comes into scope
