@@ -26,6 +26,47 @@ enum Snippet {
     Commands(HashMap<String, Details>),
 }
 
+enum Action {
+  Run,
+  List
+}
+
+fn list() {
+  println!("LIST");
+}
+
+fn run() {
+  println!("RUN");
+}
+
+struct Execute {
+  action: Action,
+  arguments: String,
+}
+
+
+fn parse_config(args: &[String]) -> (&str, &str) {
+  println!("Parsing args {:?}", args);
+  match args {
+    [only_one] => { 
+      println!("help for {}", only_one);
+      process::exit(0);
+    },
+    [_first, action] => println!(
+        "Only action given: {}",
+        action
+    ),
+    [_first, action, param] => { 
+      println!("Params: {} and {}",action, param);
+      return (action, param)
+    },
+    _ => println!("Too many parameters: {}", args.len()),
+  }
+
+  ("action", "key")
+}
+
+
 fn main() {
 
   let args: Vec<String> = env::args().collect();
@@ -148,7 +189,7 @@ fn get_snipet_file_path() -> String {
   file_path                              
 }
 
-fn parse_config(args: &[String]) -> (&str, &str) {
+fn parse_config_old(args: &[String]) -> (&str, &str) {
   let action = &args[1];
   let key = &args[2];
 
