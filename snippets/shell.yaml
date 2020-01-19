@@ -1,12 +1,15 @@
 ls:ll:
-  description: List long
-  command: ls blah blah2
-
-ls:la:
   description: List all
+  command: ls -la
+
+ls:lh:
+  description: List all human
   command: '"ls" -lha'
 
 pwd:
   description: PWD
   command: pwd
-  
+
+pwd:fail:
+  description: PWD
+  command: pwd -la

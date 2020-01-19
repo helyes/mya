@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::process::Command;
+use std::process;
 use std::str;
 
 use regex::Regex;
@@ -48,32 +49,106 @@ fn main() {
     }
   }
 
+
   println!("Snippet for '{}': {:?}", key , available_snippets.get(key));
-  let details_for_command: &Details = available_snippets.get(key).unwrap();
+  let details_for_command: &Details;
+  match available_snippets.get(key) {
+    None => {
+      println!("Snippet does not exist");
+      process::exit(1);
+    },
+    _ => details_for_command = available_snippets.get(key).unwrap()
+  }
+
   println!("  Command: {}", details_for_command.command);
   println!("  Description: {}", details_for_command.description);
 
   let dcopy = details_for_command.clone();
-  let out = execute(dcopy);
- // println!("  Out: {}", str::from_utf8(&out).unwrap());
-  println!("  Out:\n\n{}", out);
+  let output = execute(dcopy);
+
+  match output.status.code() {
+      Some(code) => {
+        println!("  Output status:{}", output.status.code().unwrap());
+        if !&output.stdout.is_empty() {
+          println!("  Std Out:\n{}", str::from_utf8(&output.stdout).unwrap());
+        }
+        if !&output.stderr.is_empty() {
+          println!("  Std Err:\n{}", str::from_utf8(&output.stderr).unwrap());
+        }
+        process::exit(code);
+      },
+      None => {
+        println!("  Process terminated by signal. Unknow exit code.");
+        process::exit(255)
+      }
+    }
+
 }
 
-fn execute(d: &Details) -> String {
+fn execute(d: &Details) -> std::process::Output {
   let command_with_params= d.command.clone();
-  let command_executable= get_command_without_parameters(command_with_params);
+  let command_executable= get_command_without_parameters(&command_with_params);
 
-  println!("  THE a: {}", command_executable);
-  let output = Command::new(command_executable)
-  .arg("-l")
-  .arg("-h")
-  .output()
-  .expect("failed to execute process");
-  let ret = str::from_utf8(&output.stdout).unwrap();
+  println!("  Executable: {}", command_executable);
+  let arguments = get_arguments(&command_with_params);
+  println!("  Arguments: {:?}", arguments);
+  let mut command = Command::new(command_executable);
+  
+  // add arguments
+  for argument in arguments {
+    println!("ARG: {}", argument);
+    command.arg(argument);
+  }
+  
+  let output = command.output().expect("failed to execute process");
+  return output;
+}
+
+fn get_arguments (command_with_params: &String) -> Vec<String> { 
+  // ideal regex, not supported: "(.+?)"|([-\w]+(?=\s|$))
+  let re = Regex::new(r#"("[^"]+")|\S+"#).unwrap();
+  let mut vec = Vec::new();
+  println!("Getting arguments...");
+  let mut i: i32 = 0;
+  for cap in re.captures_iter(command_with_params) {
+    if i!= 0 {
+      println!("Found param: {}", &cap[0]);
+      vec.push(String::from(&cap[0]));
+    }
+    i = i+1;
+  }
+  
+  // vec.push(String::from("-l"));
+  // vec.push(String::from("-h"));
+  return vec;
+}
+
+
+
+fn get_command_without_parameters (command: &String) -> String {
+  println!("Getting command without parameters...");
+  if !command.trim().contains(" ") {
+    return String::from(command);
+  }
+
+  let re = Regex::new(r#"^"(.*?)".*"#).unwrap();
+  let mut captures = re.captures(&command);  
+  let mut ret;
+  match captures {
+    None => ret = "",
+    _ => ret = captures.unwrap().get(1).map_or("", |m| m.as_str()),
+  }
+  if ret.is_empty() {
+    let re = Regex::new(r"^(.*?)\s").unwrap();
+    captures = re.captures(&command);
+    ret = captures.unwrap().get(1).map_or("", |m| m.as_str());
+  }
   return String::from(ret);
 }
+// "([^"]+)"|\s*([^"\s]+)
 
-fn get_command_without_parameters (command: String) -> String {
+
+fn get_command_without_parameters_old (command: String) -> String {
 
   if !command.trim().contains(" ") {
     return command;
