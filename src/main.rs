@@ -23,7 +23,6 @@ struct Details {
     description: String,
     directory: Option<String>,
 }
-
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 enum Snippet {
@@ -166,14 +165,8 @@ fn list(mode: ActionListMode) {
   }
 }
 
-// fn rget_snippet_details(snippet_key: &str) -> Details { 
-//   debug!("Running {} snippet, args: {:?}", &snippet_key, args);
-// }
-
-fn run_snippet(snippet_key: &str, args: &[String]) {
-  
-  debug!("Running {} snippet, args: {:?}", &snippet_key, args);
-
+fn get_snippet_details(snippet_key: &str) -> Details { 
+  debug!("Getting snippet {} details...", &snippet_key);
   let snippets: Snippet = read_snippets();
   let available_snippets: BTreeMap<String, Details>;
   match snippets {
@@ -192,6 +185,21 @@ fn run_snippet(snippet_key: &str, args: &[String]) {
     _ => snippet_details = available_snippets.get(snippet_key).unwrap()
   }
 
+  let rr = Details {
+    command: snippet_details.command.to_owned(),
+    description: snippet_details.description.to_owned(),
+    directory: snippet_details.directory.to_owned()
+
+  };
+  return rr;
+
+}
+
+fn run_snippet(snippet_key: &str, args: &[String]) {
+  
+  debug!("Running {} snippet, args: {:?}", &snippet_key, args);
+
+  let snippet_details = get_snippet_details(snippet_key);
   debug!("  Command: {}", snippet_details.command);
   debug!("  Description: {}", snippet_details.description);
   match &snippet_details.directory {
@@ -199,7 +207,7 @@ fn run_snippet(snippet_key: &str, args: &[String]) {
     None      => debug!("  No directory configured"),
   }
 
-  let output = execute(snippet_details, args);
+  let output = execute(&snippet_details, args);
 
   match output.status.code() {
       Some(code) => {
