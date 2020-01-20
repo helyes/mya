@@ -44,41 +44,6 @@ enum ActionListMode {
   Verbose
 }
 
-
-
-
-// fn parse_config(args: &[String]) -> Action {
-//   debug!("Parsing args {:?}", args);
-//   let mut ret: Action = Action::Unknown;
-//   match args {
-//     [only_one] => { 
-//       debug!("help for {}", only_one);
-//       ret = Action::Help;
-//       return ret;
-//     },
-//     [_first, action] => {
-//       match action.as_str() {
-//         "help" => return Action::Help,//ret = Action::Help,
-//         "list" => return Action::List(ActionListMode::Verbose), // ret = Action::List(ActionListMode::Verbose),
-//         _ => println!("{}: {}", "Wrong parameter".red(), action.as_str().red())
-//       }
-
-//     },
-//     [_first, action, param] => { 
-//       debug!("Params: {} and {}",action, param);
-//       match action.as_str() {
-//         "run" => ret = Action::Run(String::from(param)),
-//         "list" => ret = Action::List(ActionListMode::Short), // whatever comes after list will result in short list
-//         _ => error!("NOT a Run or List action")
-//       }
-//       // println!("!!!!!!!!!Acrion enum: {:?}", &ret);
-//     },
-//     _ => println!("{} {}", "Too many parameters:".red(), args.len().to_string().red()),
-//   }
-
-//   return ret;
-// }
-
 fn parse_config(args: &[String]) -> Action {
   debug!("Parsing args {:?}", args);
   let mut ret: Action = Action::Unknown;
@@ -195,11 +160,24 @@ fn get_snippet_details(snippet_key: &str) -> Details {
 
 }
 
+fn populate_command_placeholders(command: &str, args: &[String]) -> String {
+  debug!("  ARGS: {:?}", args);
+  let mut ret = String::from(command).as_str().to_owned();
+  for i in 0..args.len() {
+    println!("FOR: {}", args[i]);
+    let placeholder = format!("{{{}}}", i+1);
+    debug!("  Replacing {} to {}", placeholder,  args[i]);
+    ret = ret.replace(&placeholder, &args[i]);
+    debug!("  Replaced {}", ret);
+  }
+  return String::from(ret);
+}
+
 fn run_snippet(snippet_key: &str, args: &[String]) {
   
   debug!("Running {} snippet, args: {:?}", &snippet_key, args);
 
-  let snippet_details = get_snippet_details(snippet_key);
+  let mut snippet_details = get_snippet_details(snippet_key);
   debug!("  Command: {}", snippet_details.command);
   debug!("  Description: {}", snippet_details.description);
   match &snippet_details.directory {
@@ -207,6 +185,10 @@ fn run_snippet(snippet_key: &str, args: &[String]) {
     None      => debug!("  No directory configured"),
   }
 
+  let command_with_palceholders = populate_command_placeholders(&snippet_details.command, &args[3..]);
+  debug!("  Command PPP: {}", command_with_palceholders);
+
+  snippet_details.command = command_with_palceholders;
   let output = execute(&snippet_details, args);
 
   match output.status.code() {
