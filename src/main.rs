@@ -61,7 +61,7 @@ fn parse_config(args: &[String]) -> Action {
       }
 
     },
-    _ => println!("{} {}", "Too many parameters:".red(), args.len().to_string().red()),
+    _ => () //println!("{} {}", "Too many parameters:".red(), args.len().to_string().red()),
   }
    
   match args[1].as_str() {
@@ -161,20 +161,21 @@ fn get_snippet_details(snippet_key: &str) -> Details {
 }
 
 fn populate_command_placeholders(command: &str, args: &[String]) -> String {
-  debug!("  ARGS: {:?}", args);
+  debug!("Populating command placeholders. args: {:?}", args);
   let mut ret = String::from(command).as_str().to_owned();
   for i in 0..args.len() {
-    println!("FOR: {}", args[i]);
     let placeholder = format!("{{{}}}", i+1);
     debug!("  Replacing {} to {}", placeholder,  args[i]);
     ret = ret.replace(&placeholder, &args[i]);
-    debug!("  Replaced {}", ret);
   }
-  return String::from(ret);
+
+  //expand env variables and ~
+  let ret_expanded = shellexpand::full(&ret).unwrap();
+  debug!("  Replaced command: {}", ret_expanded);
+  return String::from(ret_expanded);
 }
 
 fn run_snippet(snippet_key: &str, args: &[String]) {
-  
   debug!("Running {} snippet, args: {:?}", &snippet_key, args);
 
   let mut snippet_details = get_snippet_details(snippet_key);
@@ -186,10 +187,9 @@ fn run_snippet(snippet_key: &str, args: &[String]) {
   }
 
   let command_with_palceholders = populate_command_placeholders(&snippet_details.command, &args[3..]);
-  debug!("  Command PPP: {}", command_with_palceholders);
 
   snippet_details.command = command_with_palceholders;
-  let output = execute(&snippet_details, args);
+  let output = execute(&snippet_details);
 
   match output.status.code() {
       Some(code) => {
@@ -233,37 +233,20 @@ fn main() {
 
 }
 
-fn get_placeholders_mapping(d: &Vec<String>) -> BTreeMap<String, String> { 
-  let mut ret = BTreeMap::new();
-  debug!("Getting placeholders..."); 
-  ret.insert(String::from("{{1}}"), String::from("snippets"));
-  return ret;
-}
+fn execute(d: &Details) -> std::process::Output {
+  debug!("Preparing to execute comand entry: {}", d.command);
 
-fn execute(d: &Details, args: &[String]) -> std::process::Output {
   let command_executable= get_command_without_parameters(&d.command);
-
-  debug!("  Executable: {}", command_executable);
   let arguments = get_arguments(&d.command);
-  debug!("  Arguments: {:?}", arguments);
-
-  let placeholder_map = get_placeholders_mapping(&arguments);
-  debug!("  Placeholder map: {:?}", placeholder_map);
   
-  let mut command = Command::new(command_executable);
+  let mut command = Command::new(&command_executable);
 
   // add arguments
-  for argument in arguments { 
-    // replace {{1}} and so on...
-    if argument == "{{1}}" {
-      let replaced_placeholder = &args[3];
-      debug!("  Adding argument:: {}", replaced_placeholder);
-      command.arg(replaced_placeholder);
-    } else {
-      debug!("  Adding argument:: {}", argument);
+  for argument in &arguments {
+      debug!("  Adding argument to '{}' command: {}", &command_executable, &argument);
       command.arg(argument);
-    }
   };
+
   let a = String::from("No dir!");
   let directory = d.directory.as_ref().unwrap_or(&a);
   let expanded_dir = shellexpand::full(&directory).unwrap();
@@ -272,7 +255,8 @@ fn execute(d: &Details, args: &[String]) -> std::process::Output {
     command.current_dir(expanded_dir.as_ref());
   }
 
-  
+  debug!("Executing '{}' with parameters: {:?}", &command_executable, &arguments);
+
   let output = command.output().expect("failed to execute process");
   return output;
 }
@@ -281,16 +265,17 @@ fn get_arguments (command_with_params: &String) -> Vec<String> {
   // ideal regex, not supported: "(.+?)"|([-\w]+(?=\s|$))
   let re = Regex::new(r#"("[^"]+")|\S+"#).unwrap();
   let mut vec = Vec::new();
-  debug!("Getting arguments...");
+  debug!("Getting arguments for command...");
   let mut i: i16 = 0;
   for cap in re.captures_iter(command_with_params) {
     // skip firs argument. That's the script name
     if i!= 0 {
-      debug!("Found argument: {}", &cap[0]);
+      // debug!("  Found argument: {}", &cap[0]);
       vec.push(String::from(&cap[0]));
     }
     i = i+1;
   }
+  debug!("  Arguments: {:?}", vec);
   return vec;
 }
 
@@ -313,6 +298,7 @@ fn get_command_without_parameters (command: &String) -> String {
     captures = re.captures(&command);
     ret = captures.unwrap().get(1).map_or("", |m| m.as_str());
   }
+  debug!("  Command to execute: {}", &ret);
   return String::from(ret);
 }
 // "([^"]+)"|\s*([^"\s]+)

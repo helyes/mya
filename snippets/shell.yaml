@@ -27,4 +27,4 @@ rails:start:
 
 ls:f:
   description: TODO List files with passed filters
-  command: ls -l /Users/andras/work/sc/{1}/db ${HOME}/{2}
+  command: ls -l ${HOME}/work/sc/{1}/db ${HOME}/{2}
