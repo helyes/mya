@@ -32,7 +32,8 @@ enum Snippet {
 
 #[derive(Debug)]
 enum Action {
-  Run(String),
+  // Store the yaml key and additional parameters
+  Run(String, Vec<String>),
   Help,
   List(ActionListMode),
   Unknown
@@ -45,6 +46,40 @@ enum ActionListMode {
 }
 
 
+
+
+// fn parse_config(args: &[String]) -> Action {
+//   debug!("Parsing args {:?}", args);
+//   let mut ret: Action = Action::Unknown;
+//   match args {
+//     [only_one] => { 
+//       debug!("help for {}", only_one);
+//       ret = Action::Help;
+//       return ret;
+//     },
+//     [_first, action] => {
+//       match action.as_str() {
+//         "help" => return Action::Help,//ret = Action::Help,
+//         "list" => return Action::List(ActionListMode::Verbose), // ret = Action::List(ActionListMode::Verbose),
+//         _ => println!("{}: {}", "Wrong parameter".red(), action.as_str().red())
+//       }
+
+//     },
+//     [_first, action, param] => { 
+//       debug!("Params: {} and {}",action, param);
+//       match action.as_str() {
+//         "run" => ret = Action::Run(String::from(param)),
+//         "list" => ret = Action::List(ActionListMode::Short), // whatever comes after list will result in short list
+//         _ => error!("NOT a Run or List action")
+//       }
+//       // println!("!!!!!!!!!Acrion enum: {:?}", &ret);
+//     },
+//     _ => println!("{} {}", "Too many parameters:".red(), args.len().to_string().red()),
+//   }
+
+//   return ret;
+// }
+
 fn parse_config(args: &[String]) -> Action {
   debug!("Parsing args {:?}", args);
   let mut ret: Action = Action::Unknown;
@@ -52,25 +87,23 @@ fn parse_config(args: &[String]) -> Action {
     [only_one] => { 
       debug!("help for {}", only_one);
       ret = Action::Help;
+      return ret;
     },
     [_first, action] => {
       match action.as_str() {
-        "help" => ret = Action::Help,
-        "list" => ret = Action::List(ActionListMode::Verbose),
+        "help" => return Action::Help,
+        "list" => return Action::List(ActionListMode::Verbose),
         _ => println!("{}: {}", "Wrong parameter".red(), action.as_str().red())
       }
 
     },
-    [_first, action, param] => { 
-      debug!("Params: {} and {}",action, param);
-      match action.as_str() {
-        "run" => ret = Action::Run(String::from(param)),
-        "list" => ret = Action::List(ActionListMode::Short), // whatever comes after list will result in short list
-        _ => error!("NOT a Run or List action")
-      }
-      // println!("!!!!!!!!!Acrion enum: {:?}", &ret);
-    },
     _ => println!("{} {}", "Too many parameters:".red(), args.len().to_string().red()),
+  }
+   
+  match args[1].as_str() {
+    "run" => ret = Action::Run(String::from(args[2].as_str()), Vec::from(args)),
+    "list" => ret = Action::List(ActionListMode::Short), // whatever comes after list will result in short list
+    _ => error!("NOT a Run or List action")
   }
 
   return ret;
@@ -133,9 +166,13 @@ fn list(mode: ActionListMode) {
   }
 }
 
+// fn rget_snippet_details(snippet_key: &str) -> Details { 
+//   debug!("Running {} snippet, args: {:?}", &snippet_key, args);
+// }
 
-fn run(key: &str) {
-  debug!("Running {}", &key);
+fn run_snippet(snippet_key: &str, args: &[String]) {
+  
+  debug!("Running {} snippet, args: {:?}", &snippet_key, args);
 
   let snippets: Snippet = read_snippets();
   let available_snippets: BTreeMap<String, Details>;
@@ -144,27 +181,25 @@ fn run(key: &str) {
       available_snippets = value;
     }
   }
-
-
-  debug!("Snippet for '{}': {:?}", key , available_snippets.get(key));
-  let details_for_command: &Details;
-  match available_snippets.get(key) {
+  
+  debug!("Snippet for '{}': {:?}", snippet_key , available_snippets.get(snippet_key));
+  let snippet_details: &Details;
+  match available_snippets.get(snippet_key) {
     None => {
-      error!("Snippet does not exist");
+      println!("{}", "Snippet does not exist".red());
       process::exit(1);
     },
-    _ => details_for_command = available_snippets.get(key).unwrap()
+    _ => snippet_details = available_snippets.get(snippet_key).unwrap()
   }
 
-  debug!("  Command: {}", details_for_command.command);
-  debug!("  Description: {}", details_for_command.description);
-  match &details_for_command.directory {
+  debug!("  Command: {}", snippet_details.command);
+  debug!("  Description: {}", snippet_details.description);
+  match &snippet_details.directory {
     Some(dir) => debug!("  Directory: {}", dir),
     None      => debug!("  No directory configured"),
   }
 
-  let dcopy = details_for_command.clone();
-  let output = execute(dcopy);
+  let output = execute(snippet_details, args);
 
   match output.status.code() {
       Some(code) => {
@@ -197,8 +232,8 @@ fn main() {
     Action::List(l) =>  {
       list(l);
     }
-    Action::Run(key) =>  {
-      run(&key);
+    Action::Run(snippet_key, arga) =>  {
+      run_snippet(&snippet_key, &arga)//&args);
     }
     _ => {
       println!("Action not implemented: {:?}", a);
@@ -208,18 +243,36 @@ fn main() {
 
 }
 
-fn execute(d: &Details) -> std::process::Output {
+fn get_placeholders_mapping(d: &Vec<String>) -> BTreeMap<String, String> { 
+  let mut ret = BTreeMap::new();
+  debug!("Getting placeholders..."); 
+  ret.insert(String::from("{{1}}"), String::from("snippets"));
+  return ret;
+}
+
+fn execute(d: &Details, args: &[String]) -> std::process::Output {
   let command_executable= get_command_without_parameters(&d.command);
 
   debug!("  Executable: {}", command_executable);
   let arguments = get_arguments(&d.command);
   debug!("  Arguments: {:?}", arguments);
-  let mut command = Command::new(command_executable);
+
+  let placeholder_map = get_placeholders_mapping(&arguments);
+  debug!("  Placeholder map: {:?}", placeholder_map);
   
+  let mut command = Command::new(command_executable);
+
   // add arguments
-  for argument in arguments {
-    debug!("  Adding argument:: {}", argument);
-    command.arg(argument);
+  for argument in arguments { 
+    // replace {{1}} and so on...
+    if argument == "{{1}}" {
+      let replaced_placeholder = &args[3];
+      debug!("  Adding argument:: {}", replaced_placeholder);
+      command.arg(replaced_placeholder);
+    } else {
+      debug!("  Adding argument:: {}", argument);
+      command.arg(argument);
+    }
   };
   let a = String::from("No dir!");
   let directory = d.directory.as_ref().unwrap_or(&a);
@@ -228,6 +281,8 @@ fn execute(d: &Details) -> std::process::Output {
     debug!("  Adding dir: {:?}", expanded_dir);
     command.current_dir(expanded_dir.as_ref());
   }
+
+  
   let output = command.output().expect("failed to execute process");
   return output;
 }
@@ -239,8 +294,9 @@ fn get_arguments (command_with_params: &String) -> Vec<String> {
   debug!("Getting arguments...");
   let mut i: i16 = 0;
   for cap in re.captures_iter(command_with_params) {
+    // skip firs argument. That's the script name
     if i!= 0 {
-      debug!("Found param: {}", &cap[0]);
+      debug!("Found argument: {}", &cap[0]);
       vec.push(String::from(&cap[0]));
     }
     i = i+1;

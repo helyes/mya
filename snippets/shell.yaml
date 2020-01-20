@@ -2,12 +2,6 @@ ls:ll:
   description: List all
   command: ls -la
 
-ls:pwd:
-  description: List all and pwd. This is a multiline config
-  command: |
-    ls -la
-    pwd
-
 ls:lh:
   description: List all files in ~/Movies directory
   command: '"ls" -lha'
@@ -30,3 +24,7 @@ rails:start:
   description: Starts shiftcare's rails server
   directory: "${HOME}/work/sc/shiftcare"
   command: bundle exec rails s -p 3000
+
+ls:f:
+  description: TODO List files with passed filters
+  command: ls -l {{1}} {{2}}
