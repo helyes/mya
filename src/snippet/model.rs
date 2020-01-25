@@ -1,3 +1,4 @@
+use colored::*;
 use regex::Regex;
 use std::collections::BTreeMap;
 use serde::{Serialize, Deserialize};
@@ -16,6 +17,38 @@ pub struct Details {
 #[serde(untagged)]
 pub enum Snippet {
     Commands(BTreeMap<String, Details>),
+}
+
+impl Snippet {
+  pub fn get_details_for(&self, snippet_key: &str) -> Option<Details> { 
+    debug!("Getting snippet '{}' details...", &snippet_key.green());
+    let available_snippets: &BTreeMap<String, Details>;
+    match self {
+      Snippet::Commands(value) => {
+        available_snippets = value;
+      }
+    }
+    
+    debug!("Snippet for '{}': {:?}", snippet_key.green() , available_snippets.get(snippet_key));
+    let snippet_details: &Details;
+    match available_snippets.get(snippet_key) {
+      None => {
+        println!("{}", "\nSnippet does not exist".red());
+        println!("{}", "Run list to see available snippets");
+        return None;
+      },
+      _ => snippet_details = available_snippets.get(snippet_key).unwrap()
+    }
+  
+    let ret = Details {
+      command: snippet_details.command.to_owned(),
+      description: snippet_details.description.to_owned(),
+      directory: snippet_details.directory.to_owned()
+  
+    };
+    return Some(ret);
+  
+  }
 }
 
 impl Details {
@@ -37,7 +70,7 @@ impl Details {
       captures = re.captures(&self.command);
       ret = captures.unwrap().get(1).map_or("", |m| m.as_str());
     }
-    debug!("  Command to execute: {}", &ret);
+    debug!("Command to execute: {}", &ret);
     return String::from(ret);
   }
 
@@ -55,7 +88,7 @@ impl Details {
       }
       i = i+1;
     }
-    debug!("  Arguments: {:?}", vec);
+    debug!("Arguments: {:?}", vec);
     return vec;
   }
 }
