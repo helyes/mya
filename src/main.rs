@@ -14,7 +14,7 @@ use regex::Regex;
 mod snippet;
 use crate::snippet::{ loader, model::Snippet, model::Details};
 mod action;
-use crate::action::{ list };
+use crate::action::{ help, list };
 mod util;
 
 #[derive(Debug)]
@@ -54,8 +54,6 @@ fn parse_config(args: &[String]) -> Action {
 
   return ret;
 }
-
-
 
 
 fn get_snippet_details(snippet_key: &str) -> Details { 
@@ -145,7 +143,7 @@ fn main() {
 
   match a {
     Action::Help =>  {
-      debug!("Printing help");
+      help::execute();
       process::exit(0);
     },
     Action::List(l) =>  {
