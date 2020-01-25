@@ -12,8 +12,7 @@ use regex::Regex;
 #[macro_use] extern crate log;
 
 mod snippet;
-use crate::snippet::loader;
-
+use crate::snippet::{ loader, model::Snippet, model::Details};
 mod util;
 use crate::util::string_util;
 
@@ -34,7 +33,6 @@ enum ActionListMode {
 
 fn parse_config(args: &[String]) -> Action {
   debug!("Parsing args {:?}", args);
-  loader::load_file();
   let mut ret: Action = Action::Unknown;
   match args {
     [only_one] => { 
@@ -65,11 +63,12 @@ fn parse_config(args: &[String]) -> Action {
 
 fn list(mode: ActionListMode) {
   debug!("Listing snippets");
-  let snippets: loader::Snippet = loader::read_snippets();
+
+  let snippets: Snippet = loader::read_snippets();
   debug!("Snippets: {:?}", snippets);
-  let available_snippets: BTreeMap<String, loader::Details>;
+  let available_snippets: BTreeMap<String, Details>;
   match snippets {
-    loader::Snippet::Commands(value) => {
+    Snippet::Commands(value) => {
       // println!("value: {:?}", value);
       available_snippets = value;
     }
@@ -99,18 +98,18 @@ fn list(mode: ActionListMode) {
   }
 }
 
-fn get_snippet_details(snippet_key: &str) -> loader::Details { 
+fn get_snippet_details(snippet_key: &str) -> Details { 
   debug!("Getting snippet {} details...", &snippet_key.green());
-  let snippets: loader::Snippet = loader::read_snippets();
-  let available_snippets: BTreeMap<String, loader::Details>;
+  let snippets: Snippet = loader::read_snippets();
+  let available_snippets: BTreeMap<String, Details>;
   match snippets {
-    loader::Snippet::Commands(value) => {
+    Snippet::Commands(value) => {
       available_snippets = value;
     }
   }
   
   debug!("Snippet for '{}': {:?}", snippet_key , available_snippets.get(snippet_key));
-  let snippet_details: &loader::Details;
+  let snippet_details: &Details;
   match available_snippets.get(snippet_key) {
     None => {
       println!("{}", "\nSnippet does not exist".red());
@@ -120,7 +119,7 @@ fn get_snippet_details(snippet_key: &str) -> loader::Details {
     _ => snippet_details = available_snippets.get(snippet_key).unwrap()
   }
 
-  let rr = loader::Details {
+  let rr = Details {
     command: snippet_details.command.to_owned(),
     description: snippet_details.description.to_owned(),
     directory: snippet_details.directory.to_owned()
@@ -203,7 +202,7 @@ fn main() {
 
 }
 
-fn execute(d: &loader::Details) -> std::process::Output {
+fn execute(d: &Details) -> std::process::Output {
   debug!("Preparing to execute comand entry: {}", d.command);
 
   let command_executable= get_command_without_parameters(&d.command);
