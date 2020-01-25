@@ -1,40 +1,37 @@
 // https://doc.rust-lang.org/rust-by-example/custom_types/enum/testcase_linked_list.html
 // https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html
-use colored::*;
+// use colored::*;
 use std::env;
 use std::process;
 
 #[macro_use] extern crate log;
 
-mod snippet;
-use crate::snippet::{ loader, model::Snippet };
 mod action;
 use crate::action::{ help, list, run };
+mod snippet;
+use crate::snippet::{ loader, model::Snippet };
 mod util;
 
 #[derive(Debug)]
 enum Action {
-  // Store the yaml key and additional parameters
-  Run(String, Vec<String>),
   Help,
   List(list::ActionListMode),
-  Unknown
+  // Store the yaml key and additional parameters
+  Run(String, Vec<String>),
 }
 
-fn parse_arguments(args: &[String]) -> Action {
+fn parse_arguments(args: &[String]) -> Result<Action, &str> {
   debug!("Parsing args {:?}", args);
-  let mut ret: Action = Action::Unknown;
   match args {
     [only_one] => { 
       debug!("help for {}", only_one);
-      ret = Action::Help;
-      return ret;
+      return Ok(Action::Help);
     },
     [_first, action] => {
       match action.as_str() {
-        "help" => return Action::Help,
-        "list" => return Action::List(list::ActionListMode::Verbose),
-        _ => println!("{}: {}", "Wrong parameter".red(), action.as_str().red())
+        "help" => return Ok(Action::Help),
+        "list" => return Ok(Action::List(list::ActionListMode::Verbose)),
+        _ => return Err("Wrong parameter, only list and help works without parameter")
       }
 
     },
@@ -44,24 +41,31 @@ fn parse_arguments(args: &[String]) -> Action {
   match args[1].as_str() {
     "run" => {
       if args.len() < 3 {
-        
+        return Err("Run command must be followed by target defined in yaml")
       }
-      ret = Action::Run(String::from(args[2].as_str()), Vec::from(args))
+      return Ok(Action::Run(String::from(args[2].as_str()), Vec::from(args)))
     },
-    "list" => ret = Action::List(list::ActionListMode::Short), // whatever comes after list will result in short list
-    _ => error!("NOT a Run or List action")
+    "list" => return Ok(Action::List(list::ActionListMode::Short)), // whatever comes after list will result in short list
+    _ => return Err("NOT a Run or List action. Action not implemented")
   }
-
-  return ret;
 }
 
 fn main() {
   env_logger::init();
   let args: Vec<String> = env::args().collect();
-  let a = parse_arguments(&args);
-
   let exit_code: i32;
-  match a {
+  let action_result = parse_arguments(&args);
+  let action : Action;
+
+  match action_result {
+    Ok(val) => action = val,
+    Err(message) => {
+      println!("Error: {:?}", message);
+      process::exit(3);
+    }
+  }
+
+  match action {
     Action::Help =>  {
       exit_code = help::execute();
     },
@@ -78,10 +82,6 @@ fn main() {
         }
         None => exit_code = 4
       }
-    }
-    _ => {
-      println!("Action not implemented: {:?}", a);
-      exit_code = 3;
     }
   };
   process::exit(exit_code);
