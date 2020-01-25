@@ -13,22 +13,17 @@ use regex::Regex;
 
 mod snippet;
 use crate::snippet::{ loader, model::Snippet, model::Details};
+mod action;
+use crate::action::{ list };
 mod util;
-use crate::util::string_util;
 
 #[derive(Debug)]
 enum Action {
   // Store the yaml key and additional parameters
   Run(String, Vec<String>),
   Help,
-  List(ActionListMode),
+  List(list::ActionListMode),
   Unknown
-}
-
-#[derive(Debug)]
-enum ActionListMode {
-  Short, // this is for bash code completition
-  Verbose
 }
 
 fn parse_config(args: &[String]) -> Action {
@@ -43,7 +38,7 @@ fn parse_config(args: &[String]) -> Action {
     [_first, action] => {
       match action.as_str() {
         "help" => return Action::Help,
-        "list" => return Action::List(ActionListMode::Verbose),
+        "list" => return Action::List(list::ActionListMode::Verbose),
         _ => println!("{}: {}", "Wrong parameter".red(), action.as_str().red())
       }
 
@@ -53,7 +48,7 @@ fn parse_config(args: &[String]) -> Action {
    
   match args[1].as_str() {
     "run" => ret = Action::Run(String::from(args[2].as_str()), Vec::from(args)),
-    "list" => ret = Action::List(ActionListMode::Short), // whatever comes after list will result in short list
+    "list" => ret = Action::List(list::ActionListMode::Short), // whatever comes after list will result in short list
     _ => error!("NOT a Run or List action")
   }
 
@@ -61,42 +56,7 @@ fn parse_config(args: &[String]) -> Action {
 }
 
 
-fn list(mode: ActionListMode) {
-  debug!("Listing snippets");
 
-  let snippets: Snippet = loader::read_snippets();
-  debug!("Snippets: {:?}", snippets);
-  let available_snippets: BTreeMap<String, Details>;
-  match snippets {
-    Snippet::Commands(value) => {
-      // println!("value: {:?}", value);
-      available_snippets = value;
-    }
-  }
-  //println!("Available Snippets: {:?}", available_snippets);
-
-  match mode {
-    ActionListMode::Short => {
-      for (key, _value) in &available_snippets {
-        print!("{} ", key);
-      }
-    },
-    ActionListMode::Verbose => {
-      println!("\n{}", "Available commands".green().bold());
-      let mut longest_key_length = 0;
-      for (key, _value) in &available_snippets {
-        if key.len() > longest_key_length {
-          longest_key_length = key.len();
-        }
-      }
-      for (key, value) in &available_snippets {
-        let keyp = format!("  {}", key);
-        println!("{} {}", keyp.yellow().bold(), string_util::left_pad(&value.command, longest_key_length - key.len(), ' ').bold());
-        println!("{}", string_util::left_pad(&value.description, longest_key_length + 3, ' '));
-      }
-    }
-  }
-}
 
 fn get_snippet_details(snippet_key: &str) -> Details { 
   debug!("Getting snippet {} details...", &snippet_key.green());
@@ -189,7 +149,8 @@ fn main() {
       process::exit(0);
     },
     Action::List(l) =>  {
-      list(l);
+      let snippets: Snippet = loader::read_snippets();
+      list::execute(l, snippets);
     }
     Action::Run(snippet_key, arga) =>  {
       run_snippet(&snippet_key, &arga)//&args);
@@ -199,7 +160,6 @@ fn main() {
       process::exit(3);
     }
   };
-
 }
 
 fn execute(d: &Details) -> std::process::Output {
