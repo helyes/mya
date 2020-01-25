@@ -7,7 +7,7 @@ use std::str;
 
 use crate::snippet::model::{ Snippet, Details};
 
-pub fn execute(snippet_key: &str, snippets: Snippet, args: &[String]) {
+pub fn execute(snippet_key: &str, snippets: Snippet, args: &[String]) -> i32 {
   debug!("Running {} snippet, args: {:?}", &snippet_key, args);
 
   let mut snippet_details = get_snippet_details(snippet_key, snippets);
@@ -32,11 +32,11 @@ pub fn execute(snippet_key: &str, snippets: Snippet, args: &[String]) {
         if !&output.stderr.is_empty() {
           println!("\n{}", str::from_utf8(&output.stderr).unwrap().red());
         }
-        process::exit(code);
+        return code;
       },
       None => {
         println!("{}", "Process terminated by signal. Unknow exit code".red());
-        process::exit(255)
+        return 255;
       }
     }
 }

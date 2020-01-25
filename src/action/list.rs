@@ -9,7 +9,7 @@ pub enum ActionListMode {
   Verbose
 }
 
-pub fn execute(mode: ActionListMode, snippets: Snippet) {
+pub fn execute(mode: ActionListMode, snippets: Snippet) -> i32 {
   debug!("Listing snippets");
 
   debug!("Snippets: {:?}", snippets);
@@ -26,7 +26,7 @@ pub fn execute(mode: ActionListMode, snippets: Snippet) {
     ActionListMode::Short => {
       for (key, _value) in &available_snippets {
         print!("{} ", key);
-      }
+      };
     },
     ActionListMode::Verbose => {
       println!("\n{}", "Available commands".green().bold());
@@ -43,4 +43,5 @@ pub fn execute(mode: ActionListMode, snippets: Snippet) {
       }
     }
   }
+  return 0;
 }

@@ -55,26 +55,24 @@ fn main() {
   let args: Vec<String> = env::args().collect();
   let a = parse_config(&args);
 
+  let exit_code: i32;
   match a {
     Action::Help =>  {
-      help::execute();
-      process::exit(0);
+      exit_code = help::execute();
     },
     Action::List(l) =>  {
       let snippets: Snippet = loader::read_snippets();
-      list::execute(l, snippets);
+      exit_code = list::execute(l, snippets);
     }
     Action::Run(snippet_key, arga) =>  {
       let snippets: Snippet = loader::read_snippets();
-      run::execute(&snippet_key, snippets, &arga);
+      exit_code = run::execute(&snippet_key, snippets, &arga);
     }
     _ => {
       println!("Action not implemented: {:?}", a);
-      process::exit(3);
+      exit_code = 3;
     }
   };
+  process::exit(exit_code);
 }
-
-
 // "([^"]+)"|\s*([^"\s]+)
-
