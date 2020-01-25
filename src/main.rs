@@ -3,31 +3,19 @@
 use colored::*;
 use std::collections::BTreeMap;
 use std::env;
-use std::fs;
 use std::process::Command;
 use std::process;
 use std::str;
 
 use regex::Regex;
-use serde::{Serialize, Deserialize};
 
 #[macro_use] extern crate log;
 
+mod snippet;
+use crate::snippet::loader;
 
-// https://serde.rs/derive.html
-// https://github.com/dtolnay/serde-yaml
-// https://stackoverflow.com/questions/55245914/how-to-use-serde-to-parse-a-yaml-file-with-multiple-different-types
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct Details {
-    command: String,
-    description: String,
-    directory: Option<String>,
-}
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-enum Snippet {
-    Commands(BTreeMap<String, Details>),
-}
+mod util;
+use crate::util::string_util;
 
 #[derive(Debug)]
 enum Action {
@@ -46,6 +34,7 @@ enum ActionListMode {
 
 fn parse_config(args: &[String]) -> Action {
   debug!("Parsing args {:?}", args);
+  loader::load_file();
   let mut ret: Action = Action::Unknown;
   match args {
     [only_one] => { 
@@ -73,34 +62,14 @@ fn parse_config(args: &[String]) -> Action {
   return ret;
 }
 
-fn read_snippets() -> Snippet {
-  let file_to_read = get_snipet_file_path();
-  debug!("Reading file: {}", file_to_read);
-
-  let contents = fs::read_to_string(file_to_read)
-    .expect("Something went wrong reading the file");
-  let snippets: Snippet = serde_yaml::from_str(&contents).unwrap();
-  return snippets;
-}
-
-
-fn left_pad(s: &str, pad: usize, padchar: char) -> String
-{
-    let mut ret = String::new();
-    for _ in 0..pad {
-        ret.push(padchar);
-    }
-    ret.push_str(s);
-    ret
-}
 
 fn list(mode: ActionListMode) {
   debug!("Listing snippets");
-  let snippets: Snippet = read_snippets();
+  let snippets: loader::Snippet = loader::read_snippets();
   debug!("Snippets: {:?}", snippets);
-  let available_snippets: BTreeMap<String, Details>;
+  let available_snippets: BTreeMap<String, loader::Details>;
   match snippets {
-    Snippet::Commands(value) => {
+    loader::Snippet::Commands(value) => {
       // println!("value: {:?}", value);
       available_snippets = value;
     }
@@ -123,34 +92,35 @@ fn list(mode: ActionListMode) {
       }
       for (key, value) in &available_snippets {
         let keyp = format!("  {}", key);
-        println!("{} {}", keyp.yellow().bold(), left_pad(&value.command, longest_key_length - key.len(), ' ').bold());
-        println!("{}", left_pad(&value.description, longest_key_length + 3, ' '));
+        println!("{} {}", keyp.yellow().bold(), string_util::left_pad(&value.command, longest_key_length - key.len(), ' ').bold());
+        println!("{}", string_util::left_pad(&value.description, longest_key_length + 3, ' '));
       }
     }
   }
 }
 
-fn get_snippet_details(snippet_key: &str) -> Details { 
-  debug!("Getting snippet {} details...", &snippet_key);
-  let snippets: Snippet = read_snippets();
-  let available_snippets: BTreeMap<String, Details>;
+fn get_snippet_details(snippet_key: &str) -> loader::Details { 
+  debug!("Getting snippet {} details...", &snippet_key.green());
+  let snippets: loader::Snippet = loader::read_snippets();
+  let available_snippets: BTreeMap<String, loader::Details>;
   match snippets {
-    Snippet::Commands(value) => {
+    loader::Snippet::Commands(value) => {
       available_snippets = value;
     }
   }
   
   debug!("Snippet for '{}': {:?}", snippet_key , available_snippets.get(snippet_key));
-  let snippet_details: &Details;
+  let snippet_details: &loader::Details;
   match available_snippets.get(snippet_key) {
     None => {
-      println!("{}", "Snippet does not exist".red());
+      println!("{}", "\nSnippet does not exist".red());
+      println!("{}", "Run list to see available snippets");
       process::exit(1);
     },
     _ => snippet_details = available_snippets.get(snippet_key).unwrap()
   }
 
-  let rr = Details {
+  let rr = loader::Details {
     command: snippet_details.command.to_owned(),
     description: snippet_details.description.to_owned(),
     directory: snippet_details.directory.to_owned()
@@ -233,7 +203,7 @@ fn main() {
 
 }
 
-fn execute(d: &Details) -> std::process::Output {
+fn execute(d: &loader::Details) -> std::process::Output {
   debug!("Preparing to execute comand entry: {}", d.command);
 
   let command_executable= get_command_without_parameters(&d.command);
@@ -303,7 +273,3 @@ fn get_command_without_parameters (command: &String) -> String {
 }
 // "([^"]+)"|\s*([^"\s]+)
 
-fn get_snipet_file_path() -> String {
-  let file_path = String::from("snippets/shell.yaml"); // some_string comes into scope
-  file_path                              
-}
