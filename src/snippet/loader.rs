@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-
+use std::collections::BTreeMap;
 use crate::snippet::model::Snippet;
 
 fn get_snipet_files_folder() -> String {
@@ -14,33 +14,36 @@ fn get_snipet_files_folder() -> String {
   }
 }
 
-pub fn get_grop_names() -> Option<Vec<(String, String)>> {
+pub fn get_grop_names() -> BTreeMap<String, String> {
   let snippet_files_folder = get_snipet_files_folder();
+  debug!("Getting group names from folder: {}", snippet_files_folder);
+  let mut ret = BTreeMap::new();
   let entries = fs::read_dir(&snippet_files_folder);
     match entries {
       Ok(entries) => {
-        let mut ret = Vec::<(String, String)>::new();
         for r in entries {
           let path = r.unwrap().path();
           let category = String::from(path.file_stem().unwrap().to_str().unwrap());
-          ret.push((category, path.into_os_string().into_string().unwrap()));
+          ret.insert(category, path.into_os_string().into_string().unwrap());
         }
-        return Some(ret);
+        debug!("Group names: {:?}", ret);
+        return ret;
       }
       Err(message) => {
         println!("Error loading files from folder:{}, Error: {:?}", &snippet_files_folder, message);
-        return None;
+        return ret;
       }
     }
 }
 
-pub fn read_snippets(group: Option<&str>) -> Snippet {
+pub fn read_snippets(group: &Option<&String>) -> Snippet {
+  debug!("Reading snippet for group: {:?}", group);
 
-  let snippet_root = "snippets";
+  // let snippet_files_folder = get_snipet_files_folder();
   let file_to_read: String; // = get_snipet_file_path();
   match group {
     Some(group) => {
-      file_to_read = String::from(format!("{}/{}", snippet_root, group))
+      file_to_read = String::from(format!("{}", group))
     }
     None => file_to_read = String::from("snippets/shell.yaml")
   }

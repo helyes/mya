@@ -16,10 +16,10 @@ extern crate clap;
 use clap::{ App, AppSettings, Arg };
 
 fn main() {
-  let args: Vec<String> = env::args().collect();
   env_logger::init();
+  // mut as it needs to be shifted if group is used
+  let mut args_to_pass: Vec<String> = env::args().collect();
   let exit_code: i32;
-  println!("Group names: {:?}", loader::get_grop_names());
   // https://github.com/brocode/fw/blob/c803cd20dd6f5f4f07fb4c061f7ac9e8240ea29b/src/app/mod.rs
   let matches = App::new("mya")
         .about("My better aliases")
@@ -58,9 +58,9 @@ fn main() {
                         .unwrap()
                         .collect::<Vec<_>>();
 
-              let snippet_group: Option<&str>;
+              let snippet_group: Option<&String>;
               let snippet_key : &str;
-
+              let group_names = loader::get_grop_names();
               match run_params.len() {
                0 => {
                 // this scenario can't happen due to clap config
@@ -72,18 +72,23 @@ fn main() {
                 snippet_key = run_params[0];
                },
                _ => {
-                 // no group: mya run rails startserver
-                snippet_group = Some(run_params[0]);
-                snippet_key = run_params[1];
+                 // figure if second parameter is a group
+                snippet_group = group_names.get(run_params[0]);
+                match snippet_group {
+                  Some(_group) => {
+                    snippet_key = run_params[1];
+                    &args_to_pass.remove(0);
+                  },
+                  None => snippet_key = run_params[0],
+                }
                },
               };
-              // let snippet_group: Option<&str> = if run_params.len() > 1 { Some (run_params[0]) } else { None };
               // let snippet_key = run_params[0];
-              let snippets: Snippet = loader::read_snippets(snippet_group);
+              let snippets: Snippet = loader::read_snippets(&snippet_group);
               let snippet_details = snippets.get_details_for(&snippet_key);
               match snippet_details {
                 Some(details) => {
-                  exit_code = run::execute(&snippet_key, details, &args);
+                  exit_code = run::execute(&snippet_key, details, &args_to_pass);
                 }
                 None => exit_code = 4
               }
@@ -92,11 +97,11 @@ fn main() {
           ("list", Some(list_matches)) => {
               if list_matches.is_present("short") {
                   // "$ mya list -s" was run
-                  let snippets: Snippet = loader::read_snippets(None);
+                  let snippets: Snippet = loader::read_snippets(&None);
                   exit_code = list::execute(list::ActionListMode::Short, snippets);
               } else {
                   // "$ mya list" was run
-                  let snippets: Snippet = loader::read_snippets(None);
+                  let snippets: Snippet = loader::read_snippets(&None);
                   exit_code = list::execute(list::ActionListMode::Verbose, snippets);
               }
           }
