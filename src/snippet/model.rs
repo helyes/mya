@@ -20,6 +20,21 @@ pub enum Snippet {
 }
 
 impl Snippet {
+
+  pub fn is_key_exists(&self, snippet_key: &str) -> bool {
+    match self {
+      Snippet::Commands(value) => {
+        match value.get(snippet_key) {
+          Some(_s) => {
+            debug!("Found key: {}", snippet_key);
+            true
+          }
+          None => false
+        }
+      }
+    }
+  }
+
   pub fn get_details_for(&self, snippet_key: &str) -> Option<Details> { 
     debug!("Getting snippet '{}' details...", &snippet_key.green());
     let available_snippets: &BTreeMap<String, Details>;

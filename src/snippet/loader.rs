@@ -36,22 +36,39 @@ pub fn get_grop_names() -> BTreeMap<String, String> {
     }
 }
 
-pub fn read_snippets(group: &Option<&String>) -> Snippet {
-  debug!("Reading snippet for group: {:?}", group);
-
-  // let snippet_files_folder = get_snipet_files_folder();
-  let file_to_read: String; // = get_snipet_file_path();
-  match group {
-    Some(group) => {
-      file_to_read = String::from(format!("{}", group))
-    }
-    None => file_to_read = String::from("snippets/shell.yaml")
-  }
-
-  debug!("Reading file: {}", file_to_read);
-
+pub fn read_snippet_file(file_to_read: &str) -> Snippet {
   let contents = fs::read_to_string(file_to_read)
-    .expect("Something went wrong reading the file");
+      .expect(format!("Something went wrong reading file: {}", file_to_read).as_str());
   let snippets: Snippet = serde_yaml::from_str(&contents).unwrap();
   return snippets;
+}
+
+pub fn get_snippet_for_key(group: &Option<&String>, snippet_key: &str) -> Option<Snippet> {
+  // let snippet_files_folder = get_snipet_files_folder();
+  let file_to_read: String;
+  match group {
+    Some(group) => {
+      debug!("Reading snippet for group: {:?}", group);
+      // group is given, we know what file to read
+      file_to_read = String::from(format!("{}", group));
+      let snippet = read_snippet_file(&file_to_read);
+      //return Some(read_snippet_file(&file_to_read));
+      if snippet.is_key_exists(snippet_key) {
+        return Some(snippet);
+      } else {
+        return None;
+      }
+    }
+    None => {
+      debug!("No group provided, searching {} in all snippet files", snippet_key);
+      let group_names = get_grop_names();
+      for (_key, value) in group_names {
+        let snippet = read_snippet_file(&value);
+        if snippet.is_key_exists(snippet_key) {
+          return Some(snippet);
+        }
+      }
+      return None;
+    }
+  }
 }

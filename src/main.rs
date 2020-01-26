@@ -48,7 +48,7 @@ fn main() {
                      .multiple(true))
         )
         .get_matches();
-
+        let group_names = loader::get_grop_names();
         match matches.subcommand() {
           ("run", Some(add_matches)) => {
             // Reference to run's matches
@@ -60,7 +60,6 @@ fn main() {
 
               let snippet_group: Option<&String>;
               let snippet_key : &str;
-              let group_names = loader::get_grop_names();
               match run_params.len() {
                0 => {
                 // this scenario can't happen due to clap config
@@ -83,26 +82,39 @@ fn main() {
                 }
                },
               };
-              // let snippet_key = run_params[0];
-              let snippets: Snippet = loader::read_snippets(&snippet_group);
-              let snippet_details = snippets.get_details_for(&snippet_key);
-              match snippet_details {
-                Some(details) => {
-                  exit_code = run::execute(&snippet_key, details, &args_to_pass);
-                }
-                None => exit_code = 4
-              }
 
+              let snippets: Option<Snippet> = loader::get_snippet_for_key(&snippet_group, &snippet_key);
+               match snippets {
+                 // snippet found for key
+                Some(snippet) => {
+                  let snippet_details = snippet.get_details_for(&snippet_key);
+                  match snippet_details {
+                    Some(details) => {
+                      exit_code = run::execute(&snippet_key, details, &args_to_pass);
+                    }
+                    None => {
+                      println!("Could not find details for snippet {:?}", snippet);
+                      exit_code = 4
+                    }
+                  }
+                },
+                None => {
+                  println!("Could not find snippet for key {:?}", &snippet_key);
+                  exit_code = 5
+                }
+               }
           }
           ("list", Some(list_matches)) => {
               if list_matches.is_present("short") {
                   // "$ mya list -s" was run
-                  let snippets: Snippet = loader::read_snippets(&None);
-                  exit_code = list::execute(list::ActionListMode::Short, snippets);
+                  // let snippets: Snippet = loader::read_snippets(&None);
+                  // exit_code = list::execute(list::ActionListMode::Short, snippets);
+                  exit_code = 1;
               } else {
                   // "$ mya list" was run
-                  let snippets: Snippet = loader::read_snippets(&None);
-                  exit_code = list::execute(list::ActionListMode::Verbose, snippets);
+                  // let snippets: Snippet = loader::read_snippets(&None);
+                  // exit_code = list::execute(list::ActionListMode::Verbose, snippets);
+                  exit_code = 2;
               }
           }
           ("", None) => {
