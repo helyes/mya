@@ -14,7 +14,7 @@ fn get_snipet_files_folder() -> String {
   }
 }
 
-pub fn get_grop_names() -> BTreeMap<String, String> {
+pub fn get_group_names() -> BTreeMap<String, String> {
   let snippet_files_folder = get_snipet_files_folder();
   debug!("Getting group names from folder: {}", snippet_files_folder);
   let mut ret = BTreeMap::new();
@@ -61,7 +61,7 @@ pub fn get_snippet_for_key(group: &Option<&String>, snippet_key: &str) -> Option
     }
     None => {
       debug!("No group provided, searching {} in all snippet files", snippet_key);
-      let group_names = get_grop_names();
+      let group_names = get_group_names();
       for (_key, value) in group_names {
         let snippet = read_snippet_file(&value);
         if snippet.is_key_exists(snippet_key) {
