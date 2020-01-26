@@ -1,0 +1,12 @@
+rails:start:
+  description: Starts shiftcare's rails server
+  directory: "${HOME}/work/sc/shiftcare"
+  command: bundle exec rails s -p 3000
+
+android:emu:
+  description: Android emulator
+  command: emulator -avd Nexus_5X_API_28_x86 -netdelay none -netspeed full
+
+ls:sc:
+  description: TODO List files with passed filters
+  command: ls -l ${HOME}/Movies

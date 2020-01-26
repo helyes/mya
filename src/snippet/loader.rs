@@ -3,20 +3,48 @@ use std::fs;
 
 use crate::snippet::model::Snippet;
 
-pub fn get_snipet_file_path() -> String {
-  let file_path = String::from("snippets/shell.yaml"); // some_string comes into scope
-  file_path                              
+fn get_snipet_files_folder() -> String {
+  match env::var_os("MYA_ALIASES_HOME") {
+    Some(val) => {
+      let env_path = val.to_str().unwrap();
+      let expanded = shellexpand::full(env_path).unwrap();
+      return String::from(expanded);
+    },
+    None => String::from(env::var_os("HOME").unwrap().to_str().unwrap())
+  }
 }
 
-pub fn read_snippets() -> Snippet {
+pub fn get_grop_names() -> Option<Vec<(String, String)>> {
+  let snippet_files_folder = get_snipet_files_folder();
+  let entries = fs::read_dir(&snippet_files_folder);
+    match entries {
+      Ok(entries) => {
+        let mut ret = Vec::<(String, String)>::new();
+        for r in entries {
+          let path = r.unwrap().path();
+          let category = String::from(path.file_stem().unwrap().to_str().unwrap());
+          ret.push((category, path.into_os_string().into_string().unwrap()));
+        }
+        return Some(ret);
+      }
+      Err(message) => {
+        println!("Error loading files from folder:{}, Error: {:?}", &snippet_files_folder, message);
+        return None;
+      }
+    }
+}
 
-  let key = "HOME";
-  // let mut snippets_home = ""
-  match env::var_os(key) {
-    Some(val) => println!("VARIABLE FOUND: {}: {:?}", key, val),
-    None => println!("{} is not defined in the environment.", key)
+pub fn read_snippets(group: Option<&str>) -> Snippet {
+
+  let snippet_root = "snippets";
+  let file_to_read: String; // = get_snipet_file_path();
+  match group {
+    Some(group) => {
+      file_to_read = String::from(format!("{}/{}", snippet_root, group))
+    }
+    None => file_to_read = String::from("snippets/shell.yaml")
   }
-  let file_to_read = get_snipet_file_path();
+
   debug!("Reading file: {}", file_to_read);
 
   let contents = fs::read_to_string(file_to_read)

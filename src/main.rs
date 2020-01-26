@@ -19,7 +19,7 @@ fn main() {
   let args: Vec<String> = env::args().collect();
   env_logger::init();
   let exit_code: i32;
-
+  println!("Group names: {:?}", loader::get_grop_names());
   // https://github.com/brocode/fw/blob/c803cd20dd6f5f4f07fb4c061f7ac9e8240ea29b/src/app/mod.rs
   let matches = App::new("mya")
         .about("My better aliases")
@@ -52,13 +52,34 @@ fn main() {
         match matches.subcommand() {
           ("run", Some(add_matches)) => {
             // Reference to run's matches
-            // println!("Running alias {:?}", add_matches.values_of("alias").unwrap().collect::<Vec<_>>().join(", "));
+            println!("Running alias {:?}", add_matches.values_of("alias").unwrap().collect::<Vec<_>>().join(", "));
               let run_params = add_matches
                         .values_of("alias")
                         .unwrap()
                         .collect::<Vec<_>>();
-              let snippet_key = run_params[0];
-              let snippets: Snippet = loader::read_snippets();
+
+              let snippet_group: Option<&str>;
+              let snippet_key : &str;
+
+              match run_params.len() {
+               0 => {
+                // this scenario can't happen due to clap config
+                panic!("Run subcommand must be followed by alias name")
+               }
+               1 => {
+                // no group: mya run taskname was run
+                snippet_group = None;
+                snippet_key = run_params[0];
+               },
+               _ => {
+                 // no group: mya run rails startserver
+                snippet_group = Some(run_params[0]);
+                snippet_key = run_params[1];
+               },
+              };
+              // let snippet_group: Option<&str> = if run_params.len() > 1 { Some (run_params[0]) } else { None };
+              // let snippet_key = run_params[0];
+              let snippets: Snippet = loader::read_snippets(snippet_group);
               let snippet_details = snippets.get_details_for(&snippet_key);
               match snippet_details {
                 Some(details) => {
@@ -71,11 +92,11 @@ fn main() {
           ("list", Some(list_matches)) => {
               if list_matches.is_present("short") {
                   // "$ mya list -s" was run
-                  let snippets: Snippet = loader::read_snippets();
+                  let snippets: Snippet = loader::read_snippets(None);
                   exit_code = list::execute(list::ActionListMode::Short, snippets);
               } else {
                   // "$ mya list" was run
-                  let snippets: Snippet = loader::read_snippets();
+                  let snippets: Snippet = loader::read_snippets(None);
                   exit_code = list::execute(list::ActionListMode::Verbose, snippets);
               }
           }
