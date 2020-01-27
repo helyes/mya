@@ -10,3 +10,4 @@ android:emu:
 ls:sc:
   description: TODO List files with passed filters
   command: ls -l ${HOME}/Movies
+  
