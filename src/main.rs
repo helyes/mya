@@ -51,8 +51,8 @@ fn main() {
     )
     .get_matches();
   match matches.subcommand() {
-    ("run", Some(add_matches)) => {
-      exit_code = handle_run(add_matches);
+    ("run", Some(run_matches)) => {
+      exit_code = handle_run(run_matches);
     }
     ("list", Some(list_matches)) => {
       exit_code = handle_list(list_matches);
@@ -76,7 +76,7 @@ fn handle_list(list_matches: &clap::ArgMatches<'_>) -> i32 {
   match run_params_options {
     Some(options) => {
       debug!("Parameters: {:?}", options);
-      run_params = options.collect::<Vec<_>>()
+      run_params = options.collect::<Vec<_>>();
     }
     None =>  {
       debug!("No parameters given");
@@ -86,50 +86,48 @@ fn handle_list(list_matches: &clap::ArgMatches<'_>) -> i32 {
   }
 
   // snippet path
-  let snippet_group: Option<&String>;
+  let group_file_path: Option<&String>;
 
   // snippet group coming from paraemters,
-  let snippet_requested: Option<&str>;
+  let group: Option<&str>;
   match run_params.len() {
     0 => {
       // no group given
       // "$ mya list" was run
-      debug!("No group set");
-      snippet_group = None;
-      snippet_requested = None;
+      group_file_path = None;
+      group = None;
     }
     _ => {
       // group set - only care about first one
       // "$ mya list shell" was run
-      snippet_requested = Some(run_params[0]);
+      group = Some(run_params[0]);
       if !group_names.contains_key(run_params[0]) {
         println!("\nGroup {} does not exist", run_params[0].red());
         return 7;
       } 
-      snippet_group = group_names.get(run_params[0]);
+      group_file_path = group_names.get(run_params[0]);
     }
   };
 
-  debug!("Group: {:?}", snippet_group);
+  debug!("Workingn on group: {:?}", group_file_path);
 
   if list_matches.is_present("short") {
     // "$ mya list -s" was run
-    return list::execute(list::ActionListMode::Short, snippet_requested, snippet_group);
+    return list::execute(list::ActionListMode::Short, group, group_file_path);
   } else {
     // "$ mya list" was run
-    return list::execute(list::ActionListMode::Verbose, snippet_requested, snippet_group);
+    return list::execute(list::ActionListMode::Verbose, group, group_file_path);
   }
 }
 
-fn handle_run(add_matches: &clap::ArgMatches<'_>) -> i32 {
+fn handle_run(run_matches: &clap::ArgMatches<'_>) -> i32 {
   let exit_code: i32;
   let mut args_to_pass: Vec<String> = env::args().collect();
-  let group_names = loader::get_group_names();
-
+  let available_groups = loader::get_group_names();
   // Reference to run's matches
   // println!("Running alias {:?}", add_matches.values_of("alias").unwrap().collect::<Vec<_>>().join(", "));
-  let run_params = add_matches.values_of("alias").unwrap().collect::<Vec<_>>();
-  let snippet_group: Option<&String>;
+  let run_params = run_matches.values_of("alias").unwrap().collect::<Vec<_>>();
+  let group: Option<&String>;
   let snippet_key: &str;
   match run_params.len() {
     0 => {
@@ -138,13 +136,13 @@ fn handle_run(add_matches: &clap::ArgMatches<'_>) -> i32 {
     }
     1 => {
       // no group: mya run taskname was run
-      snippet_group = None;
+      group = None;
       snippet_key = run_params[0];
     }
     _ => {
       // figure if second parameter is a group
-      snippet_group = group_names.get(run_params[0]);
-      match snippet_group {
+      group = available_groups.get(run_params[0]);
+      match group {
         Some(_group) => {
           snippet_key = run_params[1];
           &args_to_pass.remove(0);
@@ -154,7 +152,7 @@ fn handle_run(add_matches: &clap::ArgMatches<'_>) -> i32 {
     }
   };
 
-  let snippets: Option<Snippet> = loader::get_snippet_for_key(&snippet_group, &snippet_key);
+  let snippets: Option<Snippet> = loader::get_snippet_for_key(&group, &snippet_key);
   match snippets {
     // snippet found for key
     Some(snippet) => {

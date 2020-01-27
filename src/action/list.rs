@@ -52,6 +52,7 @@ pub fn execute(mode: ActionListMode, snippet_requested: Option<&str>, group_file
   if mode != ActionListMode::Short {
     println!("\n{}", "Available aliases".green().bold());
   }
+
   let mut files_to_read: Vec<String> = Vec::new();
   match group_file_path {
     Some(file_path) => {
