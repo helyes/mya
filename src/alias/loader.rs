@@ -1,9 +1,9 @@
 use std::env;
 use std::fs;
 use std::collections::BTreeMap;
-use crate::snippet::model::Snippet;
+use crate::alias::model::Alias;
 
-fn get_snipet_files_folder() -> String {
+fn get_alias_files_folder() -> String {
   match env::var_os("MYA_ALIASES_HOME") {
     Some(val) => {
       let env_path = val.to_str().unwrap();
@@ -15,10 +15,10 @@ fn get_snipet_files_folder() -> String {
 }
 
 pub fn get_group_names() -> BTreeMap<String, String> {
-  let snippet_files_folder = get_snipet_files_folder();
-  debug!("Getting group names from folder: {}", snippet_files_folder);
+  let alias_files_folder = get_alias_files_folder();
+  debug!("Getting group names from folder: {}", alias_files_folder);
   let mut ret = BTreeMap::new();
-  let entries = fs::read_dir(&snippet_files_folder);
+  let entries = fs::read_dir(&alias_files_folder);
     match entries {
       Ok(entries) => {
         for r in entries {
@@ -30,42 +30,41 @@ pub fn get_group_names() -> BTreeMap<String, String> {
         return ret;
       }
       Err(message) => {
-        println!("Error loading files from folder:{}, Error: {:?}", &snippet_files_folder, message);
+        println!("Error loading files from folder:{}, Error: {:?}", &alias_files_folder, message);
         return ret;
       }
     }
 }
 
-pub fn read_snippet_file(file_to_read: &str) -> Snippet {
+pub fn read_alias_file(file_to_read: &str) -> Alias {
   let contents = fs::read_to_string(file_to_read)
       .expect(format!("Something went wrong reading file: {}", file_to_read).as_str());
-  let snippets: Snippet = serde_yaml::from_str(&contents).unwrap();
-  return snippets;
+  let aliases: Alias = serde_yaml::from_str(&contents).unwrap();
+  return aliases;
 }
 
-pub fn get_snippet_for_key(group: &Option<&String>, snippet_key: &str) -> Option<Snippet> {
-  // let snippet_files_folder = get_snipet_files_folder();
+pub fn get_alias_for_key(group: &Option<&String>, alias_key: &str) -> Option<Alias> {
   let file_to_read: String;
   match group {
     Some(group) => {
-      debug!("Reading snippet for group: {:?}", group);
+      debug!("Reading alias for group: {:?}", group);
       // group is given, we know what file to read
       file_to_read = String::from(format!("{}", group));
-      let snippet = read_snippet_file(&file_to_read);
-      //return Some(read_snippet_file(&file_to_read));
-      if snippet.is_key_exists(snippet_key) {
-        return Some(snippet);
+      let alias = read_alias_file(&file_to_read);
+      //return Some(read_alias_file(&file_to_read));
+      if alias.is_key_exists(alias_key) {
+        return Some(alias);
       } else {
         return None;
       }
     }
     None => {
-      debug!("No group provided, searching {} in all snippet files", snippet_key);
+      debug!("No group provided, searching {} in all alias files", alias_key);
       let group_names = get_group_names();
       for (_key, value) in group_names {
-        let snippet = read_snippet_file(&value);
-        if snippet.is_key_exists(snippet_key) {
-          return Some(snippet);
+        let alias = read_alias_file(&value);
+        if alias.is_key_exists(alias_key) {
+          return Some(alias);
         }
       }
       return None;

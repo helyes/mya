@@ -1,5 +1,5 @@
-use crate::snippet::loader;
-use crate::snippet::model::{Details, Snippet};
+use crate::alias::loader;
+use crate::alias::model::{Details, Alias};
 use crate::util::string_util;
 use colored::*;
 use std::collections::BTreeMap;
@@ -10,14 +10,14 @@ pub enum ActionListMode {
   Verbose,
 }
 
-fn print_snippets(
+fn print_aliases(
   mode: &ActionListMode,
   group: &str,
-  available_snippets: BTreeMap<String, Details>,
+  available_aliases: BTreeMap<String, Details>,
 ) {
   match mode {
     ActionListMode::Short => {
-      for (key, _value) in &available_snippets {
+      for (key, _value) in &available_aliases {
         print!("{} ", key);
       }
     }
@@ -25,12 +25,12 @@ fn print_snippets(
       // println!("\n{}", "Available commands".green().bold());
       println!("\n{}", group.green().bold());
       let mut longest_key_length = 0;
-      for (key, _value) in &available_snippets {
+      for (key, _value) in &available_aliases {
         if key.len() > longest_key_length {
           longest_key_length = key.len();
         }
       }
-      for (key, value) in &available_snippets {
+      for (key, value) in &available_aliases {
         let keyp = format!("  {}", key);
         println!(
           "{} {}",
@@ -46,8 +46,8 @@ fn print_snippets(
   }
 }
 
-pub fn execute(mode: ActionListMode, snippet_requested: Option<&str>, group_file_path: Option<&String>) -> i32 {
-  debug!("Listing snippets");
+pub fn execute(mode: ActionListMode, alias_requested: Option<&str>, group_file_path: Option<&String>) -> i32 {
+  debug!("Listing aliases");
 
   if mode != ActionListMode::Short {
     println!("\n{}", "Available aliases".green().bold());
@@ -56,32 +56,32 @@ pub fn execute(mode: ActionListMode, snippet_requested: Option<&str>, group_file
   let mut files_to_read: Vec<String> = Vec::new();
   match group_file_path {
     Some(file_path) => {
-      debug!("Reading snippet from {:?}", file_path);
-      let available_snippets: BTreeMap<String, Details>;
+      debug!("Reading alias from {:?}", file_path);
+      let available_aliases: BTreeMap<String, Details>;
       // group is given, we know what file to read
       files_to_read.push(String::from(format!("{}", file_path)));
-      let snippets = loader::read_snippet_file(&files_to_read[0]);
-      match snippets {
-        Snippet::Commands(value) => {
+      let aliases = loader::read_alias_file(&files_to_read[0]);
+      match aliases {
+        Alias::Commands(value) => {
           // println!("value: {:?}", value);
-          available_snippets = value;
+          available_aliases = value;
         }
       }
-      print_snippets(&mode, snippet_requested.unwrap_or(""), available_snippets)
+      print_aliases(&mode, alias_requested.unwrap_or(""), available_aliases)
     }
     None => {
       debug!("No group provided");
       let all_groups: BTreeMap<String, String> = loader::get_group_names();
       for (key, value) in &all_groups {
-        let snippets = loader::read_snippet_file(&value);
-        let available_snippets: BTreeMap<String, Details>;
-        match snippets {
-          Snippet::Commands(value) => {
+        let aliases = loader::read_alias_file(&value);
+        let available_aliases: BTreeMap<String, Details>;
+        match aliases {
+          Alias::Commands(value) => {
             // println!("value: {:?}", value);
-            available_snippets = value;
+            available_aliases = value;
           }
         }
-        print_snippets(&mode, key, available_snippets)
+        print_aliases(&mode, key, available_aliases)
       }
     }
   }

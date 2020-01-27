@@ -2,22 +2,22 @@ use colored::*;
 use std::process::Command;
 use std::str;
 
-use crate::snippet::model::{ Details };
+use crate::alias::model::{ Details };
 use crate::util::string_util;
 
-pub fn execute(snippet_key: &str, mut snippet_details: Details, args: &[String]) -> i32 {
-  debug!("Running {} snippet, args: {:?}", &snippet_key, args);
+pub fn execute(alias_key: &str, mut alias_details: Details, args: &[String]) -> i32 {
+  debug!("Running {} alias, args: {:?}", &alias_key, args);
 
-  // let mut snippet_details = snippets.get_details_for(snippet_key);
-  debug!("Command: {}", snippet_details.command);
-  debug!("Description: {}", snippet_details.description);
-  match &snippet_details.directory {
+  // let mut alias_details = aliases.get_details_for(alias_key);
+  debug!("Command: {}", alias_details.command);
+  debug!("Description: {}", alias_details.description);
+  match &alias_details.directory {
     Some(dir) => debug!("Directory: {}", dir),
     None      => debug!("No directory configured"),
   }
   
-  snippet_details.command = string_util::personalize(&snippet_details.command, &args[3..]);
-  let output = execute_snippet_details(&snippet_details);
+  alias_details.command = string_util::personalize(&alias_details.command, &args[3..]);
+  let output = execute_alias_details(&alias_details);
 
   match output.status.code() {
       Some(code) => {
@@ -37,7 +37,7 @@ pub fn execute(snippet_key: &str, mut snippet_details: Details, args: &[String])
     }
 }
 
-fn execute_snippet_details(d: &Details) -> std::process::Output {
+fn execute_alias_details(d: &Details) -> std::process::Output {
   debug!("Preparing to execute command entry: {}", d.command);
 
   let command_executable= &d.get_command_without_parameters();

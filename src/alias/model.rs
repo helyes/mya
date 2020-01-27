@@ -15,18 +15,18 @@ pub struct Details {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Snippet {
+pub enum Alias {
     Commands(BTreeMap<String, Details>),
 }
 
-impl Snippet {
+impl Alias {
 
-  pub fn is_key_exists(&self, snippet_key: &str) -> bool {
+  pub fn is_key_exists(&self, alias_key: &str) -> bool {
     match self {
-      Snippet::Commands(value) => {
-        match value.get(snippet_key) {
+      Alias::Commands(value) => {
+        match value.get(alias_key) {
           Some(_s) => {
-            debug!("Found key: {}", snippet_key);
+            debug!("Found key: {}", alias_key);
             true
           }
           None => false
@@ -35,30 +35,30 @@ impl Snippet {
     }
   }
 
-  pub fn get_details_for(&self, snippet_key: &str) -> Option<Details> { 
-    debug!("Getting snippet '{}' details...", &snippet_key.green());
-    let available_snippets: &BTreeMap<String, Details>;
+  pub fn get_details_for(&self, alias_key: &str) -> Option<Details> { 
+    debug!("Getting alias '{}' details...", &alias_key.green());
+    let available_aliases: &BTreeMap<String, Details>;
     match self {
-      Snippet::Commands(value) => {
-        available_snippets = value;
+      Alias::Commands(value) => {
+        available_aliases = value;
       }
     }
     
-    debug!("Snippet for '{}': {:?}", snippet_key.green() , available_snippets.get(snippet_key));
-    let snippet_details: &Details;
-    match available_snippets.get(snippet_key) {
+    debug!("Alias for '{}': {:?}", alias_key.green() , available_aliases.get(alias_key));
+    let alias_details: &Details;
+    match available_aliases.get(alias_key) {
       None => {
-        println!("{}", "\nSnippet does not exist".red());
-        println!("{}", "Run list to see available snippets");
+        println!("{}", "\nAlias does not exist".red());
+        println!("{}", "Run list to see available aliases");
         return None;
       },
-      _ => snippet_details = available_snippets.get(snippet_key).unwrap()
+      _ => alias_details = available_aliases.get(alias_key).unwrap()
     }
   
     let ret = Details {
-      command: snippet_details.command.to_owned(),
-      description: snippet_details.description.to_owned(),
-      directory: snippet_details.directory.to_owned()
+      command: alias_details.command.to_owned(),
+      description: alias_details.description.to_owned(),
+      directory: alias_details.directory.to_owned()
   
     };
     return Some(ret);

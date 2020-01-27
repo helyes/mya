@@ -1,4 +1,4 @@
-use crate::snippet::loader;
+use crate::alias::loader;
 use crate::action::list;
 use colored::*;
 
@@ -20,10 +20,10 @@ pub fn handle(list_matches: &clap::ArgMatches<'_>) -> i32 {
     }
   }
 
-  // snippet path
+  // alias path
   let group_file_path: Option<&String>;
 
-  // snippet group coming from paraemters,
+  // alias group coming from paraemters,
   let group: Option<&str>;
   match run_params.len() {
     0 => {

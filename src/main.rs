@@ -4,7 +4,7 @@ use std::process;
 
 mod action;
 mod action_handler;
-mod snippet;
+mod alias;
 mod util;
 
 #[macro_use]
