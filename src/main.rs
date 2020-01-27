@@ -21,7 +21,7 @@ fn main() {
     .version("1.0")
     .global_setting(AppSettings::ColoredHelp)
     .setting(AppSettings::SubcommandRequired)
-    .author("Andras <helyesa@gamil.com>")
+    .author("Andras <helyesa@gmail.com>")
     // list takes an optional -s flag
     .subcommand(
       App::new("list")
