@@ -44,12 +44,15 @@ pub fn handle(list_matches: &clap::ArgMatches<'_>) -> i32 {
     }
   };
 
-  debug!("Workingn on group: {:?}", group_file_path);
+  debug!("Working on group: {:?}", group_file_path);
 
-  if list_matches.is_present("short") {
-    // "$ mya list -s" was run
-    return list::execute(list::ActionListMode::Short, group, group_file_path);
-  } else {
+   if list_matches.is_present("groupsonly") {
+      // "$ mya list -g" was run
+      return list::execute(list::ActionListMode::Group, group, group_file_path);
+   } else if list_matches.is_present("short") {
+      // "$ mya list -s" was run
+      return list::execute(list::ActionListMode::Short, group, group_file_path);
+    } else {
     // "$ mya list" was run
     return list::execute(list::ActionListMode::Verbose, group, group_file_path);
   }

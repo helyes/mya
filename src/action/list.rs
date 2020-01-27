@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 
 #[derive(Debug, PartialEq)]
 pub enum ActionListMode {
+  Group,
   Short, // this is for bash code completition
   Verbose,
 }
@@ -16,6 +17,9 @@ fn print_aliases(
   available_aliases: BTreeMap<String, Details>,
 ) {
   match mode {
+    ActionListMode::Group => {
+        print!("{} ", group);
+    }
     ActionListMode::Short => {
       for (key, _value) in &available_aliases {
         print!("{} ", key);
@@ -46,10 +50,10 @@ fn print_aliases(
   }
 }
 
-pub fn execute(mode: ActionListMode, alias_requested: Option<&str>, group_file_path: Option<&String>) -> i32 {
+pub fn execute(mode: ActionListMode, group: Option<&str>, group_file_path: Option<&String>) -> i32 {
   debug!("Listing aliases");
 
-  if mode != ActionListMode::Short {
+  if mode == ActionListMode::Verbose {
     println!("\n{}", "Available aliases".green().bold());
   }
 
@@ -67,7 +71,7 @@ pub fn execute(mode: ActionListMode, alias_requested: Option<&str>, group_file_p
           available_aliases = value;
         }
       }
-      print_aliases(&mode, alias_requested.unwrap_or(""), available_aliases)
+      print_aliases(&mode, group.unwrap_or(""), available_aliases)
     }
     None => {
       debug!("No group provided");

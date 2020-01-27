@@ -32,7 +32,8 @@ fn main() {
             .required(false)
             .multiple(true),
         )
-        .arg(Arg::with_name("short").short("s").help("short list")),
+        .arg(Arg::with_name("short").short("s").help("short list"))
+        .arg(Arg::with_name("groupsonly").short("g").help("list groups only")),
     )
     .subcommand(
       App::new("run")

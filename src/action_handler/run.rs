@@ -1,3 +1,4 @@
+use colored::*;
 use std::env;
 use crate::action::run;
 use crate::alias::{loader, model::Alias};
@@ -50,7 +51,11 @@ pub fn handle(run_matches: &clap::ArgMatches<'_>) -> i32 {
       }
     }
     None => {
-      println!("Could not find alias for key {:?}", &alias_key);
+      // println!("Could not find alias for key {:?} in below groups:\n", &alias_key);
+      println!("\n{} '{}' {}", "Could not find alias for key".yellow(), &alias_key.red(), "in below groups:\n".yellow());
+      for (key, value) in &available_groups {
+        println!("{}: \t{}", key.bold(), value);
+      }
       exit_code = 5
     }
   }
