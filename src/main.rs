@@ -1,6 +1,6 @@
 // https://doc.rust-lang.org/rust-by-example/custom_types/enum/testcase_linked_list.html
 // https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html
-// use colored::*;
+use colored::*;
 use std::env;
 use std::process;
 
@@ -18,8 +18,6 @@ use clap::{App, AppSettings, Arg};
 
 fn main() {
   env_logger::init();
-  // mut as it needs to be shifted if group is used
-  let mut args_to_pass: Vec<String> = env::args().collect();
   let exit_code: i32;
   // https://github.com/brocode/fw/blob/c803cd20dd6f5f4f07fb4c061f7ac9e8240ea29b/src/app/mod.rs
   let matches = App::new("mya")
@@ -70,52 +68,57 @@ fn main() {
 }
 
 fn handle_list(list_matches: &clap::ArgMatches<'_>) -> i32 {
-  let exit_code: i32;
+  // let exit_code: i32;
   let group_names = loader::get_group_names();
   let run_params_options = list_matches.values_of("alias");
   let run_params :Vec<_>;
 
   match run_params_options {
     Some(options) => {
-      println!("Option given. {:?}", options);
+      debug!("Parameters: {:?}", options);
       run_params = options.collect::<Vec<_>>()
     }
     None =>  {
-      println!("No option was given");
+      debug!("No parameters given");
       // TODO: refactor
       run_params = Vec::new();
     }
   }
+
+  // snippet path
   let snippet_group: Option<&String>;
+
+  // snippet group coming from paraemters,
+  let snippet_requested: Option<&str>;
   match run_params.len() {
     0 => {
       // no group given
       // "$ mya list" was run
-      println!("No group set");
+      debug!("No group set");
       snippet_group = None;
+      snippet_requested = None;
     }
     _ => {
       // group set - only care about first one
       // "$ mya list shell" was run
+      snippet_requested = Some(run_params[0]);
+      if !group_names.contains_key(run_params[0]) {
+        println!("\nGroup {} does not exist", run_params[0].red());
+        return 7;
+      } 
       snippet_group = group_names.get(run_params[0]);
     }
   };
 
-  println!("Group: {:?}", snippet_group);
+  debug!("Group: {:?}", snippet_group);
 
   if list_matches.is_present("short") {
-    println!("List short");
     // "$ mya list -s" was run
-    // let snippets: Snippet = loader::read_snippets(&None);
-    exit_code = list::execute(list::ActionListMode::Short, snippet_group);
-    
-    // exit_code = 1;
+    return list::execute(list::ActionListMode::Short, snippet_requested, snippet_group);
   } else {
-    println!("List long");
     // "$ mya list" was run
-    exit_code = list::execute(list::ActionListMode::Verbose, snippet_group);
+    return list::execute(list::ActionListMode::Verbose, snippet_requested, snippet_group);
   }
-  return exit_code;
 }
 
 fn handle_run(add_matches: &clap::ArgMatches<'_>) -> i32 {

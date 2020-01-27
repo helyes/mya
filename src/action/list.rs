@@ -4,7 +4,7 @@ use crate::util::string_util;
 use colored::*;
 use std::collections::BTreeMap;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ActionListMode {
   Short, // this is for bash code completition
   Verbose,
@@ -46,16 +46,19 @@ fn print_snippets(
   }
 }
 
-pub fn execute(mode: ActionListMode, group_file_path: Option<&String>) -> i32 {
+pub fn execute(mode: ActionListMode, snippet_requested: Option<&str>, group_file_path: Option<&String>) -> i32 {
   debug!("Listing snippets");
-  println!("\n{}", "Available aliases".green().bold());
+
+  if mode != ActionListMode::Short {
+    println!("\n{}", "Available aliases".green().bold());
+  }
   let mut files_to_read: Vec<String> = Vec::new();
   match group_file_path {
-    Some(group) => {
-      debug!("Reading snippet from {:?}", group);
+    Some(file_path) => {
+      debug!("Reading snippet from {:?}", file_path);
       let available_snippets: BTreeMap<String, Details>;
       // group is given, we know what file to read
-      files_to_read.push(String::from(format!("{}", group)));
+      files_to_read.push(String::from(format!("{}", file_path)));
       let snippets = loader::read_snippet_file(&files_to_read[0]);
       match snippets {
         Snippet::Commands(value) => {
@@ -63,7 +66,7 @@ pub fn execute(mode: ActionListMode, group_file_path: Option<&String>) -> i32 {
           available_snippets = value;
         }
       }
-      print_snippets(&mode, "Grop name comes here", available_snippets)
+      print_snippets(&mode, snippet_requested.unwrap_or(""), available_snippets)
     }
     None => {
       debug!("No group provided");
