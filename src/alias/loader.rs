@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::path::Path;
+use std::process;
 
 fn get_alias_files_folder() -> String {
   match env::var_os("MYA_ALIASES_HOME") {
@@ -51,8 +52,17 @@ pub fn get_group_names() -> Result<BTreeMap<String, String>, &'static str> {
 pub fn read_alias_file(file_to_read: &str) -> Alias {
   let contents = fs::read_to_string(file_to_read)
     .expect(format!("Something went wrong reading file: {}", file_to_read).as_str());
-  let aliases: Alias = serde_yaml::from_str(&contents).unwrap();
-  return aliases;
+  // let aliases: Alias = serde_yaml::from_str(&contents).unwrap();
+  // let aliases: Alias = serde_yaml::from_str(&contents).expect(format!("Could not parse file: {}", file_to_read).as_str());
+  match serde_yaml::from_str(&contents) {
+    Ok(aliases) => aliases,
+    Err(err) => {
+      println!("\n{} {}","Could not parse file:".red(), file_to_read.red());
+      println!("{:?}", err);
+      process::exit(12);
+    }
+  }
+  //return aliases;
 }
 
 pub fn get_alias_for_key(group: &Option<&String>, alias_key: &str) -> Option<Alias> {
