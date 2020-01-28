@@ -1,0 +1,115 @@
+version: 2
+jobs:
+  test:
+    parallelism: 1
+    working_directory: ~/mya
+    docker:
+      - image: circleci/rust:1.40.0
+    steps:
+      - run:
+          name: "Export build start timestamp"
+          command: |
+            echo "export BUILD_START_AT=$(date +%Y-%m-%d)" >> $BASH_ENV
+      # Checkout code
+      - checkout
+
+      # has to be here as circleci refuses to checkout code into a non empty folder
+      - run:
+          name: "Save build timestamp"
+          command: |
+            echo "$BUILD_START_AT"  > ~/mya/ci.build.startat.txt
+
+      # Create test result folder (should use {working_directory})
+      - run:
+          name: Creating project test_results folder
+          command: mkdir ~/mya/test_results
+
+      # Create /test_result folder. It's for artifacts and in root on purpose
+      - run:
+          name: Creating /test_results folder
+          command: sudo mkdir /test_results && sudo chmod a+w /test_results
+
+      # Print installed apps/libs versions
+      - run:
+          name: Which version?
+          command: |
+            printf "Installed versions\\n"; for app in cargo rustc rustup; do printf "\\t$app: $($app --version)\\n" ; done
+
+      - type: shell
+        name: Cargo test
+        command: |
+          cargo test --verbose
+
+      # Save test results for timing analysis
+      - store_test_results:
+          path: test_results
+
+      - persist_to_workspace:
+          root: .
+          paths: ./*
+
+      # - run:
+      #     name: Create artifacts
+      #     command: |
+      #       # echo "Test artifact" > /test_results/createdartifacts.txt
+      #       [ -d public/screenshots ] && cp -r public/screenshots /test_results/
+      #       cp -r test_results/* /test_results/
+      #       [ -f /test_results/rspec.xml ] &&  mv /test_results/rspec.xml /test_results/coverage/
+      #       [ -f /test_results/coverage/index.html ] && cp /test_results/coverage/index.html /test_results/coverage-report.html
+      #       [ -f /test_results/coverage-report.html ] && sed -i -e 's/\.\/assets\//\.\/coverage\/assets\//g' /test_results/coverage-report.html
+
+      #     when: always
+
+      - store_artifacts:
+          path: /test_results
+
+  assets:
+    working_directory: ~/mya
+    docker:
+      - image: circleci/rust:1.40.0
+
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Set environment variables"
+          command: |
+            echo "export SC_VERSION=$( cat version | tr -d '\n')"  >> $BASH_ENV
+            echo "export BUILD_START_AT=$( cat ci.build.startat.txt | tr -d '\n')"  >> $BASH_ENV
+
+      - run:
+          name: Print environment variables
+          command: |
+            printf "ENV:\\n"; for envvar in SC_VERSION BUILD_START_AT ; do printf "\\t$envvar: $(echo ${!envvar})\\n" ; done
+
+      - run:
+          name: Create /test_results/build folder
+          command: sudo mkdir -p /test_results/build && sudo chmod a+w /test_results/build
+
+      - run:
+          name: Build executable
+          command: cargo build --release --verbose
+
+      - run:
+          name: Generating build info
+          command: |
+            printf "Branch: ${CIRCLE_BRANCH}\n Version ${SC_VERSION}\n Build: ${CIRCLE_BUILD_NUM}\n Built at: $(date -u +%F\ %T) UTC\n" > ci.build.info.txt
+            printf " Build URL: ${CIRCLE_BUILD_URL}\n Repository: ${CIRCLE_REPOSITORY_URL}\n" >> ci.build.info.txt
+            printf " Last commit sha1: ${CIRCLE_SHA1}\n" >> ci.build.info.txt
+            cat ci.build.info.txt
+
+      # - run:
+      #     name: Git archive
+      #     command: git archive -v -o deploy-artifact.zip HEAD
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - test
+      - assets:
+          requires:
+            - test
+          filters:
+            branches:
+              only: /^release\/\d+\.\d+\.\d+|master|^.*assets$/
