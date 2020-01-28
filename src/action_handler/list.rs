@@ -3,8 +3,16 @@ use crate::action::list;
 use colored::*;
 
 pub fn handle(list_matches: &clap::ArgMatches<'_>) -> i32 {
-  // let exit_code: i32;
-  let group_names = loader::get_group_names();
+  let gn = loader::get_group_names();
+  let group_names;
+  match gn {
+    Ok(groups) => group_names = groups,
+    Err(err) => {
+      println!("{}", err);
+      return 27;
+    }
+  }
+
   let run_params_options = list_matches.values_of("alias");
   let run_params :Vec<_>;
 

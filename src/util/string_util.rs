@@ -9,6 +9,10 @@ pub fn left_pad(s: &str, pad: usize, padchar: char) -> String {
   ret
 }
 
+pub fn underscore_for(s: &str) -> String {
+  left_pad("", s.len(), '-')
+}
+
 pub fn personalize(command: &str, args: &[String]) -> Result<String, &'static str> {
   debug!(
     "Personalizing string: {} with with values{:?}",
@@ -100,5 +104,21 @@ mod tests_personalize {
       personalized.unwrap(),
       String::from("ls -l passed1/db ~/passed3")
     );
+  }
+}
+
+#[cfg(test)]
+mod tests_underscore_for {
+  use super::*;
+  #[test]
+  fn text() {
+    let text = "her we go";
+    assert_eq!(underscore_for(text), "---------");
+  }
+
+  #[test]
+  fn empty_text() {
+    let text = "";
+    assert_eq!(underscore_for(text), "");
   }
 }

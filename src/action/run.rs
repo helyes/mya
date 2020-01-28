@@ -71,7 +71,12 @@ fn execute_alias_details(d: &Details) -> std::process::Output {
     "Executing '{}' with parameters: {:?}",
     &command_executable, &arguments
   );
-
-  let output = command.output().expect("failed to execute process");
+  println!("\n{}", d.description.green().bold());
+  println!("{}\n",  string_util::underscore_for(&d.description));
+  if directory != &a {
+    println!("{} {}", "cd".yellow(), expanded_dir.as_ref().yellow());
+  }
+  println!("{}\n", d.command.yellow());
+  let output = command.output().expect(&format!("Failed to execute: {}", d.description));
   return output;
 }

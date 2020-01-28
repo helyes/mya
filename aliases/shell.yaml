@@ -1,17 +1,21 @@
 ls:ll:
-  description: List all
+  description: Listing all
   command: ls -la
 
 ls:lh:
-  description: List all files in ~/Movies directory
+  description: Listing all files in ~/Movies directory
   command: '"ls" -lha'
   directory: "~/Movies"
 
 ls:nvm:
-  description: List all in ${NVM_BIN} 
+  description: Listing all in ${NVM_BIN}
   command: '"ls" -lha'
   directory: "${NVM_BIN}"
 
+nosleep:
+  description: Preventing mac to sleep
+  command: pmset noidle
+  
 pwd:
   description: PWD - no parameters
   command: pwd
@@ -21,5 +25,5 @@ pwd:fail:
   command: pwd -la
 
 ls:f:
-  description: TODO List files with passed filters
+  description: Listing files with passed filters
   command: ls -l ${HOME}/work/sc/{1}/db ${HOME}/{2}

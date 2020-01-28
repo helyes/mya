@@ -75,7 +75,7 @@ pub fn execute(mode: ActionListMode, group: Option<&str>, group_file_path: Optio
     }
     None => {
       debug!("No group provided");
-      let all_groups: BTreeMap<String, String> = loader::get_group_names();
+      let all_groups: BTreeMap<String, String> = loader::get_group_names().expect("Can't load groups");
       for (key, value) in &all_groups {
         let aliases = loader::read_alias_file(&value);
         let available_aliases: BTreeMap<String, Details>;

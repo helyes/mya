@@ -6,7 +6,17 @@ use crate::alias::{loader, model::Alias};
 pub fn handle(run_matches: &clap::ArgMatches<'_>) -> i32 {
   let exit_code: i32;
   let mut args_to_pass: Vec<String> = env::args().collect();
-  let available_groups = loader::get_group_names();
+  // let available_groups = loader::get_group_names();
+  let gn = loader::get_group_names();
+  let available_groups;
+  match gn {
+    Ok(groups) => available_groups = groups,
+    Err(err) => {
+      println!("{}", err);
+      return 27;
+    }
+  }
+
   // Reference to run's matches
   // println!("Running alias {:?}", add_matches.values_of("alias").unwrap().collect::<Vec<_>>().join(", "));
   let run_params = run_matches.values_of("alias").unwrap().collect::<Vec<_>>();
