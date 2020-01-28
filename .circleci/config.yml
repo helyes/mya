@@ -40,6 +40,17 @@ jobs:
         command: |
           cargo test --verbose
 
+      - run:
+        name: Install cargo junit
+        command: |
+          cargo install cargo-junit
+
+      - type: shell
+        name: Cargo test
+        command: |
+          cargo junit --name test_results/junit.xml
+
+
       # Save test results for timing analysis
       - store_test_results:
           path: test_results
@@ -48,17 +59,16 @@ jobs:
           root: .
           paths: ./*
 
-      # - run:
-      #     name: Create artifacts
-      #     command: |
-      #       # echo "Test artifact" > /test_results/createdartifacts.txt
-      #       [ -d public/screenshots ] && cp -r public/screenshots /test_results/
-      #       cp -r test_results/* /test_results/
-      #       [ -f /test_results/rspec.xml ] &&  mv /test_results/rspec.xml /test_results/coverage/
-      #       [ -f /test_results/coverage/index.html ] && cp /test_results/coverage/index.html /test_results/coverage-report.html
-      #       [ -f /test_results/coverage-report.html ] && sed -i -e 's/\.\/assets\//\.\/coverage\/assets\//g' /test_results/coverage-report.html
+      - run:
+          name: Create artifacts
+          command: |
+            # echo "Test artifact" > /test_results/createdartifacts.txt
+            cp -r test_results/* /test_results/
+            # [ -f /test_results/rspec.xml ] &&  mv /test_results/rspec.xml /test_results/coverage/
+            # [ -f /test_results/coverage/index.html ] && cp /test_results/coverage/index.html /test_results/coverage-report.html
+            # [ -f /test_results/coverage-report.html ] && sed -i -e 's/\.\/assets\//\.\/coverage\/assets\//g' /test_results/coverage-report.html
 
-      #     when: always
+          when: always
 
       - store_artifacts:
           path: /test_results
