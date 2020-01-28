@@ -113,6 +113,7 @@ jobs:
         command: |
           # echo "Test artifact" > /test_results/createdartifacts.txt
           cp ci.build.info.txt /test_results/build/
+          mv ~/mya/target/release/mya /test_results/build/
           # cp -r test_results/* /test_results/
           # [ -f /test_results/rspec.xml ] &&  mv /test_results/rspec.xml /test_results/coverage/
           # [ -f /test_results/coverage/index.html ] && cp /test_results/coverage/index.html /test_results/coverage-report.html
