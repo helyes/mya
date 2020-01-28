@@ -108,6 +108,23 @@ jobs:
             printf " Last commit sha1: ${CIRCLE_SHA1}\n" >> ci.build.info.txt
             cat ci.build.info.txt
 
+      - type: shell
+        name: Create artifacts
+        command: |
+          # echo "Test artifact" > /test_results/createdartifacts.txt
+          cp ci.build.info.txt /test_results/build/
+          # cp -r test_results/* /test_results/
+          # [ -f /test_results/rspec.xml ] &&  mv /test_results/rspec.xml /test_results/coverage/
+          # [ -f /test_results/coverage/index.html ] && cp /test_results/coverage/index.html /test_results/coverage-report.html
+          # [ -f /test_results/coverage-report.html ] && sed -i -e 's/\.\/assets\//\.\/coverage\/assets\//g' /test_results/coverage-report.html
+
+      - store_artifacts:
+        path: /test_results
+
+      - run:
+          name: check executable
+          command: ls -lh ~/mya/target/release
+
       # - run:
       #     name: Git archive
       #     command: git archive -v -o deploy-artifact.zip HEAD
